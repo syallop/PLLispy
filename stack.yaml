@@ -1,0 +1,12 @@
+flags:
+extra-package-dbs: []
+packages:
+- '.'
+- ../PL
+- ../PLGrammar
+- ../PLParser
+- ../PLPrinter
+extra-deps:
+- megaparsec-6.4.0
+- parser-combinators-0.4.0
+resolver: lts-9.18
