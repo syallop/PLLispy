@@ -19,6 +19,7 @@ import Control.Applicative
 import Data.List.NonEmpty (NonEmpty (..),uncons)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as Set
+import Data.Text
 
 import PLGrammar
 import PLGrammar.Iso
@@ -27,6 +28,8 @@ import PLLispy.ExprIso
 import PLLispy.Case
 import PLLispy.Kind
 import PLLispy.Type
+
+import PLLabel
 
 import PL.Case
 import PL.Expr hiding (appise,lamise)

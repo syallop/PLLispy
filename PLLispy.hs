@@ -183,12 +183,11 @@ grammarExpects g0 = case g0 of
     -> ExpectPredicate (enhancingLabel . Text.intercalate "." $ labels) . Just . grammarExpects $ g1
 
   -- Expected one thing and then another.
-  -- TODO: Express what we wanted after the immediate thing?
   GProductMap g1 g2
-    -> ExpectPredicate (enhancingLabel "THEN") . Just $ (ExpectPredicate (enhancingLabel "THEN") . Just . grammarExpects $ g1)
+    -> ExpectThen (grammarExpects g1) (grammarExpects g2)
 
   GLabel l g
-    -> ExpectPredicate l Nothing
+    -> ExpectLabel l (grammarExpects g)
 
   GTry g
     -> ExpectPredicate (enhancingLabel "TRY") . Just $ grammarExpects g
@@ -289,7 +288,7 @@ showExpectedDoc = bulleted
 
 -- Returns alternatives
 flattenExpectedDoc :: Expected -> [Doc]
-flattenExpectedDoc e = case e of
+flattenExpectedDoc e = List.nub $ case e of
   ExpectEither es0 es1
     -> flattenExpectedDoc es0 <> flattenExpectedDoc es1
 
@@ -321,7 +320,13 @@ flattenExpectedDoc e = case e of
 
   -- An enhancing label requires the rest of the definition.
   ExpectLabel (Label lTxt Enhancing) e
-    -> [text $ lTxt <> " AKA " <> (render . mconcat . flattenExpectedDoc $ e)
+    -> [text $ lTxt <> " " <> (render . mconcat . flattenExpectedDoc $ e)
+       ]
+
+  ExpectThen e0 e1
+    -> [ text . render . mconcat . flattenExpectedDoc $ e0
+       , text "_THEN_"
+       , text . render . mconcat . flattenExpectedDoc $ e1
        ]
 
 -- Turn an 'Expected' into a list of each expected alternative
