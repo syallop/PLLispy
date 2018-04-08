@@ -167,11 +167,11 @@ grammarExpects g0 = case g0 of
 
   -- Expected a specific thing.
   GPure a
-    -> ExpectOneOf [Text.pack . show $ a]
+    -> ExpectText . Text.pack . show $ a
 
   -- Expected to fail.
   GEmpty
-    -> ExpectOneOf []
+    -> ExpectFail
 
   -- Expected one or the other.
   GAlt l r
@@ -292,11 +292,11 @@ flattenExpectedDoc e = List.nub $ case e of
   ExpectEither es0 es1
     -> flattenExpectedDoc es0 <> flattenExpectedDoc es1
 
-  ExpectOneOf ts
-    -> let oneOf = map text ts
-        in if null oneOf
-             then [text "_EXPECTNOTHING_"]
-             else oneOf
+  ExpectFail
+    -> []
+
+  ExpectText txt
+    -> [text txt]
 
   -- For a predicate with a descriptive label, the label is enough.
   ExpectPredicate (Label lTxt Descriptive) _
