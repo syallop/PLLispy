@@ -2,7 +2,6 @@
 module PLLispy.Test.MatchArgSpec where
 
 import PL
-import PL.Grammar
 import PL.Test.MatchArg
 import PL.Test.MatchArg.Bind
 import PL.Test.MatchArg.Sum
@@ -10,6 +9,7 @@ import PL.Test.MatchArg.Product
 import PL.Test.MatchArg.Union
 import PL.Test.MatchArg.Binding
 
+import PLLispy
 import PLLispy.Expr
 import PLLispy.Type
 import PLLispy.MatchArg

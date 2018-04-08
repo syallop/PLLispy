@@ -12,7 +12,7 @@ import PL.Test.Expr.Product
 import PL.Test.Expr.Sum
 import PL.Test.Expr.Union
 
-import PL.Grammar
+import PLLispy
 import PLLispy.Expr
 import PLLispy.Type
 
