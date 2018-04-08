@@ -33,6 +33,7 @@ import PL.Expr hiding (appise,lamise)
 import PL.Kind
 import PL.Type
 import PL.Var
+import PL.Grammar
 
 typeAbs
   :: (Show tb

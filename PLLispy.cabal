@@ -38,3 +38,32 @@ library
                      , PLGrammar
   -- hs-source-dirs:      
   default-language:    Haskell2010
+
+test-suite hspec
+  type:              exitcode-stdio-1.0
+  main-is:           Spec.hs
+  hs-source-dirs:    Test
+
+  other-modules:     PLLispy.Test.ExprSpec
+                   , PLLispy.Test.MatchArgSpec
+
+  build-depends:     base >=4.7
+                   , containers >= 0.5
+                   , semigroups
+                   , text
+                   , hspec
+                   , QuickCheck
+                   , quickcheck-instances
+                   , PL
+                   , PLGrammar
+                   , PLParser
+                   , PLPrinter
+                   , PLLispy
+
+  default-language:  Haskell2010
+
+  other-extensions:  OverloadedStrings
+                   , GeneralizedNewtypeDeriving
+                   , LambdaCase
+
+  default-language:    Haskell2010
