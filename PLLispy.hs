@@ -334,7 +334,7 @@ flattenExpected :: Expected -> [Text]
 flattenExpected = map render . flattenExpectedDoc
 
 instance Document Expected where
-  document = showExpectedDoc
+  document e = showExpectedDoc e
 
 -- Turn an 'Expected' into a bulleted list of each unique expected alternative.
 showExpected :: Expected -> Text
@@ -382,9 +382,9 @@ instance Document a
              else [ text "The failures backtracked from were:"
                   , lineBreak
                   , indent1 . mconcat
-                            . map (\(expected,cursor) -> mconcat [document cursor
-                                                                 , text "Expected:"
+                            . map (\(cursor,expected) -> mconcat [ document cursor
                                                                  , document expected
+                                                                 , lineBreak
                                                                  , lineBreak
                                                                  ]
                                   )
