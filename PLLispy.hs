@@ -21,10 +21,12 @@ import PLLispy.MatchArg  as X
 import PLLispy.Type      as X
 
 import PLGrammar
+import PLLabel
 import PLGrammar.Iso
 import PLPrinter
 import PLParser
 import PLParser.Cursor
+import PLLabel
 
 import qualified PLGrammar as G
 import qualified PLParser  as P
@@ -49,10 +51,6 @@ toParser = toParser' . makePermissive
       -- A single character if one is available.
       G.GAnyChar
         -> takeChar
-
-      -- A token of text stopping at the first whitespace.
-      G.GAnyText
-        -> takeWhile1 (Predicate (not . isSpace) $ ExpectAnything)
 
       -- Return the value.
       G.GPure a
@@ -97,7 +95,7 @@ toParser = toParser' . makePermissive
             ParseSuccess a cur1
               -> case parseIso iso a of
                    Nothing
-                     -> ParseFailure [(ExpectLabel (Text.intercalate "." labels) $ grammarExpects gr, cur0)] cur1 -- cur1
+                     -> ParseFailure [(ExpectLabel (enhancingLabel . Text.intercalate "." $ labels) $ grammarExpects gr, cur0)] cur1 -- cur1
 
                    Just b
                      -> ParseSuccess b cur1
@@ -132,10 +130,6 @@ toParser = toParser' . makePermissive
     makePermissive g = case g of
       G.GAnyChar
         -> permissive G.GAnyChar
-
-      -- A token of text stopping at the first whitespace.
-      G.GAnyText
-        -> permissive G.GAnyText
 
       -- Return the value.
       G.GPure a
@@ -186,18 +180,18 @@ grammarExpects g0 = case g0 of
   -- Expects something AND a predicate to succeed.
   -- TODO: Capture this desired predicate?
   GIsoMap (Iso labels _ _) g1
-    -> ExpectPredicate (Text.intercalate "." labels) . Just . grammarExpects $ g1
+    -> ExpectPredicate (enhancingLabel . Text.intercalate "." $ labels) . Just . grammarExpects $ g1
 
   -- Expected one thing and then another.
   -- TODO: Express what we wanted after the immediate thing?
   GProductMap g1 g2
-    -> ExpectPredicate "THEN" . Just $ (ExpectPredicate "THEN" . Just . grammarExpects $ g1)
+    -> ExpectPredicate (enhancingLabel "THEN") . Just $ (ExpectPredicate (enhancingLabel "THEN") . Just . grammarExpects $ g1)
 
   GLabel l g
     -> ExpectPredicate l Nothing
 
   GTry g
-    -> ExpectPredicate "TRY" . Just $ grammarExpects g
+    -> ExpectPredicate (enhancingLabel "TRY") . Just $ grammarExpects g
 
 isoMapPrinter :: Iso a b -> Printer a -> Printer b
 isoMapPrinter iso (Printer p) = Printer $ printIso iso >=> p
@@ -206,9 +200,6 @@ toPrinter :: Grammar a -> Printer a
 toPrinter grammar = case grammar of
   GAnyChar
     -> anyCharPrinter
-
-  GAnyText
-    -> anyTextPrinter
 
   GPure a
     -> purePrinter a
@@ -236,57 +227,60 @@ describeGrammar gr = case gr of
   GAnyChar
     -> text "."
 
-  GAnyText
-    -> text "*"
-
   GPure a
     -> mconcat
-         [text "( "
-         ,text (Text.pack . show $ a)
-         ,text " )"
+         [ text "( "
+         , text (Text.pack . show $ a)
+         , text " )"
          ]
   GEmpty
     -> text "()"
 
   GAlt g0 g1
-    -> mconcat [text "(| "
-               ,indent1 $ mconcat $
-                 [lineBreak
-                 ,describeGrammar g0
-                 ,lineBreak
-                 ,describeGrammar g1
-                 ,lineBreak
+    -> mconcat [ text "(| "
+               , indent1 $ mconcat $
+                 [ lineBreak
+                 , describeGrammar g0
+                 , lineBreak
+                 , describeGrammar g1
+                 , lineBreak
                  ]
-               ,text " |)"
+               , text " |)"
                ]
 
   GIsoMap (Iso labels _ _) g
-    -> mconcat [text "($ "
-               ,text $ mconcat labels
-               ,text " $)"
+    -> mconcat [ text "($ "
+               , text $ mconcat labels
+               , text " $)"
                ]
 
   GProductMap g0 g1
-    -> mconcat [text "(& "
-               ,describeGrammar g0
-               ,text " "
-               ,describeGrammar g1
-               ,text " &)"
+    -> mconcat [ text "(& "
+               , describeGrammar g0
+               , text " "
+               , describeGrammar g1
+               , text " &)"
                ]
 
-  GLabel l g
-    -> mconcat [text "("
-               ,text l
-               ,text " "
-               ,text " "
-               ,text l
-               ,text " )"
+  -- Given a descriptive label, we can stop describing further.
+  GLabel (Label lTxt Descriptive) g
+    -> mconcat [ text "labeled:"
+               , text lTxt
+               ]
+
+  -- Given an enhancing label, we continue to describe.
+  GLabel (Label lTxt Enhancing) g
+    -> mconcat [ text "("
+               , text lTxt
+               , describeGrammar g
+               , text lTxt
+               , text " )"
                ]
 
   GTry g0
-    -> mconcat [text " (T "
-               ,describeGrammar g0
-               ,text " T) "
+    -> mconcat [ text " (T "
+               , describeGrammar g0
+               , text " T) "
                ]
 
 showExpectedDoc :: Expected -> Doc
@@ -305,8 +299,13 @@ flattenExpectedDoc e = case e of
              then [text "_EXPECTNOTHING_"]
              else oneOf
 
-  ExpectPredicate label mE
-    -> map ((text "_PREDICATE_" <> text label) <>) $ maybe [] flattenExpectedDoc mE
+  -- For a predicate with a descriptive label, the label is enough.
+  ExpectPredicate (Label lTxt Descriptive) _
+    -> [text $ "_PREDICATE_" <> lTxt]
+
+  -- For an enhancing label, we still want to see the rest of the definition.
+  ExpectPredicate (Label lTxt Enhancing) mE
+    -> map ((text "_PREDICATE_" <> text lTxt) <>) $ maybe [] flattenExpectedDoc mE
 
   ExpectAnything
     -> [text "ANYTHING"]
@@ -316,9 +315,13 @@ flattenExpectedDoc e = case e of
        ,mconcat . flattenExpectedDoc $ e
        ]
 
-  -- Show the label only
-  ExpectLabel l e
-    -> [text $ l <> " AKA " <> (render . mconcat . flattenExpectedDoc $ e)
+  -- A descriptive label is sufficient.
+  ExpectLabel (Label lTxt Descriptive) e
+    -> [text lTxt]
+
+  -- An enhancing label requires the rest of the definition.
+  ExpectLabel (Label lTxt Enhancing) e
+    -> [text $ lTxt <> " AKA " <> (render . mconcat . flattenExpectedDoc $ e)
        ]
 
 -- Turn an 'Expected' into a list of each expected alternative
@@ -344,15 +347,14 @@ instance Document Pos where
 instance Document Cursor where
   document (Cursor prev next pos) =
     let (before,pointer,after) = point (Cursor prev next pos)
-     in mconcat [rawText before
-                ,lineBreak
-                ,text pointer
-                ,lineBreak
-                ,document pos
-                ,lineBreak
+     in mconcat [ rawText before
+                , lineBreak
+                , text pointer
+                , lineBreak
+                , document pos
+                , lineBreak
 
-                -- Should be raw text!
-                ,rawText after
+                , rawText after
                 ]
 
 instance Document a

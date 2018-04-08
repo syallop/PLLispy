@@ -6,6 +6,7 @@ packages:
 - ../PLGrammar
 - ../PLParser
 - ../PLPrinter
+- ../PLLabel
 extra-deps:
 - megaparsec-6.4.0
 - parser-combinators-0.4.0
