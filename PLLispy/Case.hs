@@ -22,7 +22,8 @@ import qualified Data.Set as Set
 import qualified Data.List.NonEmpty
 
 import PLGrammar
-import PLGrammar.Iso
+import Reversible
+import Reversible.Iso
 
 import PLLispy.MatchArg
 import PLLispy.CaseIso
@@ -106,7 +107,7 @@ caseBranches
 caseBranches scrutineeGr =
   caseBranchesIso
     \$/ (someCaseBranches' scrutineeGr)
-    \*/ (try (justI \$/ spaceAllowed */ scrutineeGr) \|/ GPure Nothing)
+    \*/ (try (justI \$/ spaceAllowed */ scrutineeGr) \|/ rpure Nothing)
   where
     someCaseBranches' scrutineeGr =
       (try . betweenParens . someCaseBranches $ scrutineeGr)
@@ -114,7 +115,6 @@ caseBranches scrutineeGr =
 
     justI :: Iso a (Maybe a)
     justI = Iso
-      ["just"]
       (\a -> Just $ Just a)
       id
 
@@ -135,11 +135,10 @@ someCaseBranches
 someCaseBranches exprI =
   nonEmptyI
     \$/ (caseBranch exprI)
-    \*/ (grammarMany $ spaceRequired */ caseBranch exprI)
+    \*/ (rmany $ spaceRequired */ caseBranch exprI)
   where
     nonEmptyI :: Iso (a,[a]) (NonEmpty a)
     nonEmptyI = Iso
-      ["nonEmpty"]
       (\(a,as) -> Just $ a :| as)
       (\ne -> let (a,mNE) = NE.uncons ne
                  in Just (a,maybe [] NE.toList mNE)

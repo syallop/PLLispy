@@ -2,7 +2,7 @@
 module PLLispy.KindIso where
 
 import PLGrammar
-import PLGrammar.Iso
+import Reversible.Iso
 
 import PL.Case
 import PL.Kind
@@ -21,16 +21,14 @@ import Data.Char
 
 kindIso :: Iso () Kind
 kindIso = Iso
-  {_isoLabel = ["kind"]
-  ,_parseIso = \() -> Just Kind
-  ,_printIso = \Kind -> Just ()
+  {_forwards = \() -> Just Kind
+  ,_backwards = \Kind -> Just ()
   }
 
 kindArrowIso :: Iso (Kind,Kind) Kind
 kindArrowIso = Iso
-  {_isoLabel = ["kindArrow"]
-  ,_parseIso = \(fromKy, toKy) -> Just $ KindArrow fromKy toKy
-  ,_printIso = \kind -> case kind of
+  {_forwards = \(fromKy, toKy) -> Just $ KindArrow fromKy toKy
+  ,_backwards = \kind -> case kind of
                           KindArrow fromKy toKy
                             -> Just (fromKy, toKy)
 

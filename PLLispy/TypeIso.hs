@@ -2,7 +2,7 @@
 module PLLispy.TypeIso where
 
 import PLGrammar
-import PLGrammar.Iso
+import Reversible.Iso
 
 import PLLispy.Kind
 
@@ -29,11 +29,10 @@ import Data.Char
 -- TODO: Doesnt belong here.
 nameIso :: Iso (Char, Text.Text) Text.Text
 nameIso = Iso
-  {_isoLabel = ["name"]
-  ,_parseIso = \(c,cs) -> if
+  {_forwards = \(c,cs) -> if
                | isUpper c && Text.all isLower cs -> Just $ Text.cons c cs
                | otherwise -> Nothing
-  ,_printIso = \txt -> case Text.uncons txt of
+  ,_backwards = \txt -> case Text.uncons txt of
                          Nothing
                            -> Nothing
 
@@ -45,17 +44,15 @@ nameIso = Iso
 -- TODO: Doesnt belong here
 typeNameIso :: Iso Text.Text TypeName
 typeNameIso = Iso
-  {_isoLabel = ["typeName"]
-  ,_parseIso = \txt -> Just $ TypeName txt
-  ,_printIso = \(TypeName txt) -> Just txt
+  {_forwards = \txt -> Just $ TypeName txt
+  ,_backwards = \(TypeName txt) -> Just txt
   }
 
 namedIso :: Iso TypeName (Type tb)
 namedIso = Iso
-  {_isoLabel = ["named"]
-  ,_parseIso = \typeName
+  {_forwards = \typeName
                 -> Just . fixType . Named $ typeName
-  ,_printIso = \ty
+  ,_backwards = \ty
                 -> case unfixType ty of
                      Named typeName
                        -> Just typeName
@@ -64,10 +61,9 @@ namedIso = Iso
 
 arrowIso :: Iso (Type tb, Type tb) (Type tb)
 arrowIso = Iso
-  {_isoLabel = ["arrow"]
-  ,_parseIso = \(fromTy, toTy)
+  {_forwards = \(fromTy, toTy)
                 -> Just .fixType . Arrow fromTy $ toTy
-  ,_printIso = \ty
+  ,_backwards = \ty
                 -> case unfixType ty of
                      Arrow fromTy toTy
                        -> Just (fromTy, toTy)
@@ -76,10 +72,9 @@ arrowIso = Iso
 
 sumTIso :: Iso [Type tb] (Type tb)
 sumTIso = Iso
-  {_isoLabel = ["sumT"]
-  ,_parseIso = \tys
+  {_forwards = \tys
                 -> Just . fixType . SumT $ tys
-  ,_printIso = \ty
+  ,_backwards = \ty
                 -> case unfixType ty of
                      SumT tys
                        -> Just tys
@@ -88,10 +83,9 @@ sumTIso = Iso
 
 productTIso :: Iso [Type tb] (Type tb)
 productTIso = Iso
-  {_isoLabel = ["productT"]
-  ,_parseIso = \tys
+  {_forwards = \tys
                 -> Just . fixType . ProductT $ tys
-  ,_printIso = \ty
+  ,_backwards = \ty
                 -> case unfixType ty of
                      ProductT tys
                        -> Just tys
@@ -100,10 +94,9 @@ productTIso = Iso
 
 unionTIso :: Iso (Set.Set (Type tb)) (Type tb)
 unionTIso = Iso
-  {_isoLabel = ["unionT"]
-  ,_parseIso = \tys
+  {_forwards = \tys
                 -> Just . fixType . UnionT $ tys
-  ,_printIso = \ty
+  ,_backwards = \ty
                 -> case unfixType ty of
                      UnionT tys
                        -> Just tys
@@ -112,10 +105,9 @@ unionTIso = Iso
 
 bigArrowIso :: Iso (Kind, Type tb) (Type tb)
 bigArrowIso = Iso
-  {_isoLabel = ["bigArrow"]
-  ,_parseIso = \(fromKind, toTy)
+  {_forwards = \(fromKind, toTy)
                 -> Just . fixType . BigArrow fromKind $ toTy
-  ,_printIso = \ty
+  ,_backwards = \ty
                 -> case unfixType ty of
                     BigArrow fromKind toTy
                       -> Just (fromKind, toTy)
@@ -124,10 +116,9 @@ bigArrowIso = Iso
 
 typeLamIso :: Iso (Kind, Type tb) (Type tb)
 typeLamIso = Iso
-  {_isoLabel = ["typeLam"]
-  ,_parseIso = \(fromKind, toTy)
+  {_forwards = \(fromKind, toTy)
                 -> Just . fixType . TypeLam fromKind $ toTy
-  ,_printIso = \ty
+  ,_backwards = \ty
                 -> case unfixType ty of
                     TypeLam fromKind toTy
                       -> Just (fromKind, toTy)
@@ -137,10 +128,9 @@ typeLamIso = Iso
 
 typeAppIso :: Iso (Type tb, Type tb) (Type tb)
 typeAppIso = Iso
-  {_isoLabel = ["typeApp"]
-  ,_parseIso = \(fTy, xTy)
+  {_forwards = \(fTy, xTy)
                 -> Just . fixType . TypeApp fTy $ xTy
-  ,_printIso = \ty
+  ,_backwards = \ty
                 -> case unfixType ty of
                      TypeApp fTy xTy
                        -> Just (fTy, xTy)
@@ -149,10 +139,9 @@ typeAppIso = Iso
 
 typeBindingIso :: Iso tb (Type tb)
 typeBindingIso = Iso
-  {_isoLabel = ["typeBinding"]
-  ,_parseIso = \tb
+  {_forwards = \tb
                 -> Just . fixType . TypeBinding $ tb
-  ,_printIso = \ty
+  ,_backwards = \ty
                 -> case unfixType ty of
                      TypeBinding tb
                        -> Just tb
@@ -163,16 +152,14 @@ typeBindingIso = Iso
 -- TODO: Partial.
 tyVarIso :: Iso Int TyVar
 tyVarIso = Iso
-  {_isoLabel = ["tyVar"]
-  ,_parseIso = Just . mkTyVar
-  ,_printIso = \(TyVar v) -> Just . fromEnum $ v
+  {_forwards = Just . mkTyVar
+  ,_backwards = \(TyVar v) -> Just . fromEnum $ v
   }
 
 -- TODO: Doesnt belong here.
 setIso :: Ord a => Iso [a] (Set.Set a)
 setIso = Iso
-  {_isoLabel = ["set"]
-  ,_parseIso = Just . Set.fromList
-  ,_printIso = Just . Set.toList
+  {_forwards = Just . Set.fromList
+  ,_backwards = Just . Set.toList
   }
 

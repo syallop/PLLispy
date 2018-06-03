@@ -22,7 +22,8 @@ import qualified Data.Set as Set
 import Data.Text
 
 import PLGrammar
-import PLGrammar.Iso
+import Reversible
+import Reversible.Iso
 
 import PLLispy.ExprIso
 import PLLispy.Case
@@ -109,17 +110,17 @@ var = varIso \$/ natural
 sumExpr :: Constraints b abs tb => Grammar (Expr b abs tb)
 sumExpr = plus */ (sumIso \$/ (natural \* spaceRequired)
                           \*/ exprI
-                          \*/ (grammarMany (spaceRequired */ typ ?tb)))
+                          \*/ (rmany (spaceRequired */ typ ?tb)))
 
 -- A star followed by zero or more expressions
 productExpr :: Constraints b abs tb => Grammar (Expr b abs tb)
-productExpr = star */ (productIso \$/ grammarMany (spaceRequired */ exprI))
+productExpr = star */ (productIso \$/ rmany (spaceRequired */ exprI))
 
 -- A 'U' followed by its type index, the expression and two or more types
 unionExpr :: forall b abs tb. Constraints b abs tb => Grammar (Expr b abs tb)
 unionExpr = union */ (unionIso \$/ (typ ?tb \* spaceRequired)
                                \*/ exprI
-                               \*/ (setIso \$/ grammarMany (spaceRequired */ typ ?tb)))
+                               \*/ (setIso \$/ rmany (spaceRequired */ typ ?tb)))
 
 
 -- "CASE", then an expr then casebranches

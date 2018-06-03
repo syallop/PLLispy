@@ -18,7 +18,7 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 
 import PLGrammar
-import PLGrammar.Iso
+import Reversible.Iso
 
 import PLLispy.TypeIso
 import PLLispy.Kind
@@ -44,15 +44,15 @@ namedTyp = namedIso \$/ typeName
 
 -- A plus followed by zero or more types
 sumTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-sumTyp tb = plus */ (sumTIso \$/ grammarMany (spaceRequired */ typ tb))
+sumTyp tb = plus */ (sumTIso \$/ rmany (spaceRequired */ typ tb))
 
 -- A star followed by zero or more types
 productTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-productTyp tb = star */ (productTIso \$/ grammarMany (spaceRequired */ typ tb))
+productTyp tb = star */ (productTIso \$/ rmany (spaceRequired */ typ tb))
 
 -- A union followed by zero or more types
 unionTyp :: forall tb. (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-unionTyp tb = union */ (unionTIso \$/ (setIso \$/ grammarMany (spaceRequired */ typ tb)))
+unionTyp tb = union */ (unionTIso \$/ (setIso \$/ rmany (spaceRequired */ typ tb)))
 
 -- An arrow followed by two or more types
 arrowTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)

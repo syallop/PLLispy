@@ -2,7 +2,7 @@
 module PLLispy.ExprIso where
 
 import PLGrammar
-import PLGrammar.Iso
+import Reversible.Iso
 
 import PLLispy.Kind
 import PLLispy.Type
@@ -23,10 +23,9 @@ import qualified Data.Set as Set
  -}
 lamIso :: Iso (abs,Expr b abs tb) (Expr b abs tb)
 lamIso = Iso
-  {_isoLabel = ["lam"]
-  ,_parseIso = \(abs,body)
+  {_forwards = \(abs,body)
                 -> Just $ fixExpr $ Lam abs body
-  ,_printIso = \expr
+  ,_backwards = \expr
                 -> case unfixExpr expr of
                      Lam abs body
                        -> Just (abs,body)
@@ -35,10 +34,9 @@ lamIso = Iso
 
 appIso :: Iso (Expr b abs tb,Expr b abs tb) (Expr b abs tb)
 appIso = Iso
-  {_isoLabel = ["app"]
-  ,_parseIso = \(f,x)
+  {_forwards = \(f,x)
                 -> Just $ fixExpr $ App f x
-  ,_printIso = \expr
+  ,_backwards = \expr
                 -> case unfixExpr expr of
                      App f x
                        -> Just (f,x)
@@ -47,10 +45,9 @@ appIso = Iso
 
 bindingIso :: Iso b (Expr b abs tb)
 bindingIso = Iso
-  {_isoLabel = ["binding"]
-  ,_parseIso = \b
+  {_forwards = \b
                -> Just . fixExpr . Binding $ b
-  ,_printIso = \expr
+  ,_backwards = \expr
                -> case unfixExpr expr of
                     Binding b
                       -> Just b
@@ -59,10 +56,9 @@ bindingIso = Iso
 
 caseAnalysisIso :: Iso (Case (Expr b abs tb) (MatchArg b tb)) (Expr b abs tb)
 caseAnalysisIso = Iso
-  {_isoLabel = ["caseAnalysis"]
-  ,_parseIso = \caseA
+  {_forwards = \caseA
                -> Just . fixExpr . CaseAnalysis $ caseA
-  ,_printIso = \expr
+  ,_backwards = \expr
                -> case unfixExpr expr of
                     CaseAnalysis caseA
                       -> Just caseA
@@ -71,10 +67,9 @@ caseAnalysisIso = Iso
 
 sumIso :: Iso (Int, (Expr b abs tb, [Type tb])) (Expr b abs tb)
 sumIso = Iso
-  {_isoLabel = ["sum"]
-  ,_parseIso = \(sumIx, (expr, inTypes))
+  {_forwards = \(sumIx, (expr, inTypes))
                -> Just . fixExpr . Sum expr sumIx $ inTypes
-  ,_printIso = \expr
+  ,_backwards = \expr
                -> case unfixExpr expr of
                     Sum expr sumIx inTypes
                       -> Just (sumIx, (expr, inTypes))
@@ -83,10 +78,9 @@ sumIso = Iso
 
 productIso :: Iso [Expr b abs tb] (Expr b abs tb)
 productIso = Iso
-  {_isoLabel = ["product"]
-  ,_parseIso = \exprs
+  {_forwards = \exprs
                -> Just . fixExpr . Product $ exprs
-  ,_printIso = \expr
+  ,_backwards = \expr
                -> case unfixExpr expr of
                     Product exprs
                       -> Just exprs
@@ -95,10 +89,9 @@ productIso = Iso
 
 unionIso :: Iso (Type tb, (Expr b abs tb, Set.Set (Type tb))) (Expr b abs tb)
 unionIso = Iso
-  {_isoLabel = ["union"]
-  ,_parseIso = \(unionIx, (expr, inTypes))
+  {_forwards = \(unionIx, (expr, inTypes))
                -> Just . fixExpr . Union expr unionIx $ inTypes
-  ,_printIso = \expr
+  ,_backwards = \expr
                -> case unfixExpr expr of
                     Union expr unionIx inTypes
                       -> Just (unionIx, (expr, inTypes))
@@ -107,10 +100,9 @@ unionIso = Iso
 
 bigLamIso :: Iso (Kind, Expr b abs tb) (Expr b abs tb)
 bigLamIso = Iso
-  {_isoLabel = ["bigLam"]
-  ,_parseIso = \(absKind, bodyExpr)
+  {_forwards = \(absKind, bodyExpr)
                -> Just . fixExpr . BigLam absKind $ bodyExpr
-  ,_printIso = \expr
+  ,_backwards = \expr
                -> case unfixExpr expr of
                     BigLam absKind bodyExpr
                       -> Just (absKind, bodyExpr)
@@ -119,10 +111,9 @@ bigLamIso = Iso
 
 bigAppIso :: Iso  (Expr b abs tb, Type tb) (Expr b abs tb)
 bigAppIso = Iso
-  {_isoLabel = ["bigApp"]
-  ,_parseIso = \(f, xTy)
+  {_forwards = \(f, xTy)
                -> Just . fixExpr . BigApp f $ xTy
-  ,_printIso = \expr
+  ,_backwards = \expr
                -> case unfixExpr expr of
                     BigApp f xTy
                       -> Just (f, xTy)
@@ -133,16 +124,14 @@ bigAppIso = Iso
 -- TODO: Doesnt belong here.
 varIso :: Iso Int Var
 varIso = Iso
-  {_isoLabel = ["var"]
-  ,_parseIso = Just . mkVar
-  ,_printIso = Just . fromEnum -- TODO: Partial
+  {_forwards = Just . mkVar
+  ,_backwards = Just . fromEnum -- TODO: Partial
   }
 
 -- TODO: Doesnt belong here.
 setIso :: Ord a => Iso [a] (Set.Set a)
 setIso = Iso
-  {_isoLabel = ["set"]
-  ,_parseIso = Just . Set.fromList
-  ,_printIso = Just . Set.toList
+  {_forwards = Just . Set.fromList
+  ,_backwards = Just . Set.toList
   }
 

@@ -22,7 +22,8 @@ import PLLispy.Type      as X
 
 import PLGrammar
 import PLLabel
-import PLGrammar.Iso
+import Reversible
+import Reversible.Iso
 import PLPrinter
 import PLParser
 import PLParser.Cursor
@@ -44,58 +45,61 @@ import Data.Monoid
 
 -- | Convert a Grammar to a Parser that accepts it.
 toParser :: G.Grammar a -> Parser a
-toParser = toParser' . makePermissive
+toParser = toParser' {- . makePermissive -}
   where
     toParser' :: G.Grammar a -> Parser a
-    toParser' grammar = case grammar of
-      -- A single character if one is available.
-      G.GAnyChar
-        -> takeChar
+    toParser' (Reversible grammar) = case grammar of
+      ReversibleInstr i
+        -> case i of
+             -- A single character if one is available.
+             G.GAnyChar
+               -> takeChar
+             --
+             -- Enhance a failing parse with a given Expect label.
+             G.GLabel l g
+               -> let Parser f = toParser' g
+                   in Parser $ \cur0 -> case f cur0 of
+                        ParseFailure failures cur1
+                          -> ParseFailure (map (\(e,c) -> (ExpectLabel l e,c)) failures) cur1
+                        s -> s
+
+             G.GTry g0
+               -> P.try . toParser' $ g0
 
       -- Return the value.
-      G.GPure a
+      RPure a
         -> pure a
 
       -- Fail with no Expectations.
-      G.GEmpty
+      REmpty
         -> empty
 
       -- If the left fails, try the right as if no input had been consumed.
-      G.GAlt g0 g1
+      RAlt g0 g1
         -> toParser' g0 <|> toParser' g1
 
       -- Parse the grammar if the iso succeeds.
-      G.GIsoMap iso ga
-        -> isoMapParser iso ga
+      RMap iso ga
+        -> rmapParser iso ga
 
       -- | Tuple the result of two successive parsers.
-      G.GProductMap ga gb
-        -> productMapParser (toParser' ga) (toParser' gb)
+      RAp ga gb
+        -> rapParser (toParser' ga) (toParser' gb)
 
-      -- Enhance a failing parse with a given Expect label.
-      G.GLabel l g
-        -> let Parser f = toParser' g
-            in Parser $ \cur0 -> case f cur0 of
-                 ParseFailure failures cur1
-                   -> ParseFailure (map (\(e,c) -> (ExpectLabel l e,c)) failures) cur1
-                 s -> s
-
-      G.GTry g0
-        -> P.try . toParser' $ g0
 
     -- A Parser that accepts that grammar if the Iso also succeeds.
-    isoMapParser
+    rmapParser
       :: Show a
       => Iso a b
       -> G.Grammar a
       -> Parser b
-    isoMapParser iso@(Iso labels _ _) gr =
+    rmapParser iso@(Iso _ _) gr =
       let Parser p = toParser' gr
        in Parser $ \cur0 -> case p cur0 of
             ParseSuccess a cur1
-              -> case parseIso iso a of
+              -> case forwards iso a of
                    Nothing
-                     -> ParseFailure [(ExpectLabel (enhancingLabel . Text.intercalate "." $ labels) $ grammarExpects gr, cur0)] cur1 -- cur1
+                     -> ParseFailure [(ExpectLabel (enhancingLabel "ISO") $ grammarExpects gr, cur0)] cur1 -- cur1
 
                    Just b
                      -> ParseSuccess b cur1
@@ -106,8 +110,8 @@ toParser = toParser' . makePermissive
 
 
     -- | Tuple the result of two successive parsers.
-    productMapParser :: Parser a -> Parser b -> Parser (a,b)
-    productMapParser fa fb = (,) <$> fa <*> fb
+    rapParser :: Parser a -> Parser b -> Parser (a,b)
+    rapParser fa fb = (,) <$> fa <*> fb
 
     -- | A permissive grammar allows:
     -- - Leading whitespace
@@ -127,115 +131,146 @@ toParser = toParser' . makePermissive
     makePermissive
       :: Grammar a
       -> Grammar a
-    makePermissive g = case g of
-      G.GAnyChar
-        -> permissive G.GAnyChar
+    makePermissive (Reversible g) = case g of
+      ReversibleInstr i
+        -> case i of
+             G.GAnyChar
+               -> permissive . reversible $ G.GAnyChar
+             --
+             -- Enhance a failing parse with a given Expect label.
+             G.GLabel l g
+               -> reversible $ G.GLabel l (makePermissive g)
+
+             G.GTry g
+               -> reversible $ G.GTry (makePermissive g)
 
       -- Return the value.
-      G.GPure a
-        -> G.GPure a
+      RPure a
+        -> Reversible $ RPure $ a
 
       -- Fail with no Expectations.
-      G.GEmpty
-        -> G.GEmpty
+      REmpty
+        -> Reversible REmpty
 
       -- If the left fails, try the right as if no input had been consumed.
-      G.GAlt g0 g1
-        -> G.GAlt (makePermissive g0) (makePermissive g1)
+      RAlt g0 g1
+        -> Reversible $ RAlt (makePermissive g0) (makePermissive g1)
 
       -- Parse the grammar if the iso succeeds.
-      G.GIsoMap iso ga
-        -> G.GIsoMap iso (makePermissive ga)
+      RMap iso ga
+        -> Reversible $ RMap iso (makePermissive ga)
 
       -- | Tuple the result of two successive parsers.
-      G.GProductMap ga gb
-        -> G.GProductMap (makePermissive ga) (makePermissive gb)
+      RAp ga gb
+        -> Reversible $ RAp (makePermissive ga) (makePermissive gb)
 
-      -- Enhance a failing parse with a given Expect label.
-      G.GLabel l g
-        -> G.GLabel l (makePermissive g)
-
-      G.GTry g
-        -> G.GTry (makePermissive g)
 
 -- | A Grammar's parser expected to see:
 grammarExpects :: forall a. Show a => Grammar a -> Expected
-grammarExpects g0 = case g0 of
-  -- Expected a single character.
-  GAnyChar
-    -> ExpectN 1 ExpectAnything
+grammarExpects (Reversible g0) = case g0 of
+  ReversibleInstr i
+    -> case i of
+         -- Expected a single character.
+         GAnyChar
+           -> ExpectN 1 ExpectAnything
+
+         GLabel l g
+           -> ExpectLabel l (grammarExpects g)
+
+         GTry g
+           -> ExpectPredicate (enhancingLabel "TRY") . Just $ grammarExpects g
 
   -- Expected a specific thing.
-  GPure a
+  RPure a
     -> ExpectText . Text.pack . show $ a
 
   -- Expected to fail.
-  GEmpty
+  REmpty
     -> ExpectFail
 
   -- Expected one or the other.
-  GAlt l r
+  RAlt l r
     -> ExpectEither (grammarExpects l) (grammarExpects r)
 
   -- Expects something AND a predicate to succeed.
   -- TODO: Capture this desired predicate?
-  GIsoMap (Iso labels _ _) g1
-    -> ExpectPredicate (enhancingLabel . Text.intercalate "." $ labels) . Just . grammarExpects $ g1
+  RMap (Iso _ _) g1
+    -> ExpectPredicate (enhancingLabel "ISO") . Just . grammarExpects $ g1
 
   -- Expected one thing and then another.
-  GProductMap g1 g2
+  RAp g1 g2
     -> ExpectThen (grammarExpects g1) (grammarExpects g2)
 
-  GLabel l g
-    -> ExpectLabel l (grammarExpects g)
 
-  GTry g
-    -> ExpectPredicate (enhancingLabel "TRY") . Just $ grammarExpects g
-
-isoMapPrinter :: Iso a b -> Printer a -> Printer b
-isoMapPrinter iso (Printer p) = Printer $ printIso iso >=> p
+rmapPrinter :: Iso a b -> Printer a -> Printer b
+rmapPrinter iso (Printer p) = Printer $ backwards iso >=> p
 
 toPrinter :: Grammar a -> Printer a
-toPrinter grammar = case grammar of
-  GAnyChar
-    -> anyCharPrinter
+toPrinter (Reversible grammar) = case grammar of
+  ReversibleInstr i
+    -> case i of
+         GAnyChar
+           -> anyCharPrinter
 
-  GPure a
+         GLabel _label g
+           -> toPrinter g
+
+         GTry g
+           -> toPrinter g
+
+  RPure a
     -> purePrinter a
 
-  GEmpty
+  REmpty
     -> emptyPrinter
 
-  GAlt g0 g1
+  RAlt g0 g1
     -> altPrinter (toPrinter g0) (toPrinter g1)
 
-  GIsoMap iso ga
-    -> isoMapPrinter iso (toPrinter ga)
+  RMap iso ga
+    -> rmapPrinter iso (toPrinter ga)
 
-  GProductMap ga gb
-    -> productMapPrinter (toPrinter ga) (toPrinter gb)
-
-  GLabel _label g
-    -> toPrinter g
-
-  GTry g
-    -> toPrinter g
+  RAp ga gb
+    -> rapPrinter (toPrinter ga) (toPrinter gb)
 
 describeGrammar :: Show a => Grammar a -> Doc
-describeGrammar gr = case gr of
-  GAnyChar
-    -> text "."
+describeGrammar (Reversible gr) = case gr of
+  ReversibleInstr i
+    -> case i of
+         GAnyChar
+           -> text "."
 
-  GPure a
+         -- Given a descriptive label, we can stop describing further.
+         GLabel (Label lTxt Descriptive) g
+           -> mconcat [ text "labeled:"
+                      , text lTxt
+                      ]
+
+         -- Given an enhancing label, we continue to describe.
+         GLabel (Label lTxt Enhancing) g
+           -> mconcat [ text "("
+                      , text lTxt
+                      , describeGrammar g
+                      , text lTxt
+                      , text " )"
+                      ]
+
+         GTry g0
+           -> mconcat [ text " (T "
+                      , describeGrammar g0
+                      , text " T) "
+                      ]
+
+  RPure a
     -> mconcat
          [ text "( "
          , text (Text.pack . show $ a)
          , text " )"
          ]
-  GEmpty
+  REmpty
     -> text "()"
 
-  GAlt g0 g1
+  RAlt g0 g1
     -> mconcat [ text "(| "
                , indent1 $ mconcat $
                  [ lineBreak
@@ -247,13 +282,13 @@ describeGrammar gr = case gr of
                , text " |)"
                ]
 
-  GIsoMap (Iso labels _ _) g
+  RMap (Iso __ _) g
     -> mconcat [ text "($ "
-               , text $ mconcat labels
+               , text "ISO"
                , text " $)"
                ]
 
-  GProductMap g0 g1
+  RAp g0 g1
     -> mconcat [ text "(& "
                , describeGrammar g0
                , text " "
@@ -261,26 +296,6 @@ describeGrammar gr = case gr of
                , text " &)"
                ]
 
-  -- Given a descriptive label, we can stop describing further.
-  GLabel (Label lTxt Descriptive) g
-    -> mconcat [ text "labeled:"
-               , text lTxt
-               ]
-
-  -- Given an enhancing label, we continue to describe.
-  GLabel (Label lTxt Enhancing) g
-    -> mconcat [ text "("
-               , text lTxt
-               , describeGrammar g
-               , text lTxt
-               , text " )"
-               ]
-
-  GTry g0
-    -> mconcat [ text " (T "
-               , describeGrammar g0
-               , text " T) "
-               ]
 
 showExpectedDoc :: Expected -> Doc
 showExpectedDoc = bulleted

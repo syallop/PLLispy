@@ -22,7 +22,8 @@ import qualified Data.Set as Set
 import qualified Data.List.NonEmpty
 
 import PLGrammar
-import PLGrammar.Iso
+import Reversible
+import Reversible.Iso
 
 import PLLispy.MatchArgIso
 import PLLispy.Kind
@@ -74,7 +75,7 @@ matchProduct
      ,?tb :: Grammar tb
      )
   => Grammar (MatchArg b tb)
-matchProduct = star */ (matchProductIso \$/ grammarMany (spaceRequired */ matchArg))
+matchProduct = star */ (matchProductIso \$/ rmany (spaceRequired */ matchArg))
 
 -- A union followed by a type index and a matchArg
 matchUnion
@@ -103,5 +104,5 @@ bind
      ,Eq tb
      )
   => Grammar (MatchArg b tb)
-bind = question */ (matchBindIso \$/ GPure ())
+bind = question */ (matchBindIso \$/ rpure ())
 

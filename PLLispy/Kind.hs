@@ -16,7 +16,8 @@ import PL.Kind
 import PLLispy.KindIso
 
 import PLGrammar
-import PLGrammar.Iso
+import Reversible
+import Reversible.Iso
 
 kindAbs :: Grammar Kind
 kindAbs = kind
@@ -29,7 +30,7 @@ kind =  kind'
     kind' = simpleKind \|/ arrowKind
 
 simpleKind :: Grammar Kind
-simpleKind = textIs "KIND" */ GPure Kind
+simpleKind = textIs "KIND" */ rpure Kind
 
 arrowKind :: Grammar Kind
 arrowKind = arrow */ (kindArrowIso \$/ kind \*/ (spaceRequired */ kind))
