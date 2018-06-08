@@ -45,7 +45,7 @@ import Data.Monoid
 
 -- | Convert a Grammar to a Parser that accepts it.
 toParser :: G.Grammar a -> Parser a
-toParser = toParser' {- . makePermissive -}
+toParser = toParser'
   where
     toParser' :: G.Grammar a -> Parser a
     toParser' (Reversible grammar) = case grammar of
@@ -112,58 +112,6 @@ toParser = toParser' {- . makePermissive -}
     -- | Tuple the result of two successive parsers.
     rapParser :: Parser a -> Parser b -> Parser (a,b)
     rapParser fa fb = (,) <$> fa <*> fb
-
-    -- | A permissive grammar allows:
-    -- - Leading whitespace
-    -- - Trailing whitespace
-    -- - Parenthesis grouping allowing:
-    --   - Trailing whitespace after the opening paren
-    --   - Leading whitespace before the closing paren
-    permissive
-      :: Show a
-      => Grammar a
-      -> Grammar a
-    permissive g
-      = g
-      {-= G.try spaceAllowed G.*/ (g \|/ G.between (lparen G.\* G.try spaceAllowed) g (G.try spaceAllowed G.*/ rparen)) G.\* G.try spaceAllowed-}
-
-    -- | Make every sub-grammar 'permissive'.
-    makePermissive
-      :: Grammar a
-      -> Grammar a
-    makePermissive (Reversible g) = case g of
-      ReversibleInstr i
-        -> case i of
-             G.GAnyChar
-               -> permissive . reversible $ G.GAnyChar
-             --
-             -- Enhance a failing parse with a given Expect label.
-             G.GLabel l g
-               -> reversible $ G.GLabel l (makePermissive g)
-
-             G.GTry g
-               -> reversible $ G.GTry (makePermissive g)
-
-      -- Return the value.
-      RPure a
-        -> Reversible $ RPure $ a
-
-      -- Fail with no Expectations.
-      REmpty
-        -> Reversible REmpty
-
-      -- If the left fails, try the right as if no input had been consumed.
-      RAlt g0 g1
-        -> Reversible $ RAlt (makePermissive g0) (makePermissive g1)
-
-      -- Parse the grammar if the iso succeeds.
-      RMap iso ga
-        -> Reversible $ RMap iso (makePermissive ga)
-
-      -- | Tuple the result of two successive parsers.
-      RAp ga gb
-        -> Reversible $ RAp (makePermissive ga) (makePermissive gb)
-
 
 -- | A Grammar's parser expected to see:
 grammarExpects :: forall a. Show a => Grammar a -> Expected

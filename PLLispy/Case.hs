@@ -48,14 +48,14 @@ import PL.Var
 --     (|? (\Matchedbar 0)))
 --         (\Default 0))
 caseStatement
-  :: (Show b
-     ,Show abs
-     ,Show tb
-     ,Ord tb
-     ,Eq b
-     ,Eq abs
-     ,?eb :: Grammar b
-     ,?tb :: Grammar tb
+  :: ( Show b
+     , Show abs
+     , Show tb
+     , Ord tb
+     , Eq b
+     , Eq abs
+     , ?eb :: Grammar b
+     , ?tb :: Grammar tb
      )
   => Grammar (Expr b abs tb)
   -> Grammar (Case (Expr b abs tb) (MatchArg b tb))
