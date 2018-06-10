@@ -60,11 +60,11 @@ caseStatement
   => Grammar (Expr b abs tb)
   -> Grammar (Case (Expr b abs tb) (MatchArg b tb))
 caseStatement exprGr
-  = caseIso \$/ exprGr
+  = caseIso \$/ permissive exprGr
             \*/ (spaceRequired */ caseBody' exprGr)
   where
     caseBody' exprGr
-      = (try . betweenParens . caseBody $ exprGr)
+      = (try . betweenParens . permissive . caseBody $ exprGr)
      \|/ caseBody exprGr
 
 -- Either someCaseBranches or
@@ -74,14 +74,14 @@ caseStatement exprGr
 -- or
 -- \Foo 0
 caseBody
-  :: (Show b
-     ,Show abs
-     ,Show tb
-     ,Ord tb
-     ,Eq b
-     ,Eq abs
-     ,?eb :: Grammar b
-     ,?tb :: Grammar tb
+  :: ( Show b
+     , Show abs
+     , Show tb
+     , Ord tb
+     , Eq b
+     , Eq abs
+     , ?eb :: Grammar b
+     , ?tb :: Grammar tb
      )
   => Grammar (Expr b abs tb)
   -> Grammar (CaseBranches (Expr b abs tb) (MatchArg b tb))
@@ -93,14 +93,14 @@ caseBody scrutineeGr =  (try $ caseBranches scrutineeGr)
 --  (|? (\Bar 0)))
 --      (\Baz 0)
 caseBranches
-  :: (Show b
-     ,Show abs
-     ,Show tb
-     ,Ord tb
-     ,Eq b
-     ,Eq abs
-     ,?eb :: Grammar b
-     ,?tb :: Grammar tb
+  :: ( Show b
+     , Show abs
+     , Show tb
+     , Ord tb
+     , Eq b
+     , Eq abs
+     , ?eb :: Grammar b
+     , ?tb :: Grammar tb
      )
   => Grammar (Expr b abs tb)
   -> Grammar (CaseBranches (Expr b abs tb) (MatchArg b tb))
@@ -121,14 +121,14 @@ caseBranches scrutineeGr =
 -- A non-empty list of caseBranch
 -- (|? (\Foo 0)) (|? (\Bar 0))
 someCaseBranches
-  :: (Show b
-     ,Show abs
-     ,Show tb
-     ,Ord tb
-     ,Eq b
-     ,Eq abs
-     ,?eb :: Grammar b
-     ,?tb :: Grammar tb
+  :: ( Show b
+     , Show abs
+     , Show tb
+     , Ord tb
+     , Eq b
+     , Eq abs
+     , ?eb :: Grammar b
+     , ?tb :: Grammar tb
   )
   => Grammar (Expr b abs tb)
   -> Grammar (NonEmpty (CaseBranch (Expr b abs tb) (MatchArg b tb)))
@@ -147,14 +147,14 @@ someCaseBranches exprI =
 -- A single case branch is a matchArg pattern, then a result expression
 -- E.G.: |? (\Foo 0)
 caseBranch
-  :: (Show b
-     ,Show abs
-     ,Show tb
-     ,Ord tb
-     ,Eq b
-     ,Eq abs
-     ,?eb :: Grammar b
-     ,?tb :: Grammar tb
+  :: ( Show b
+     , Show abs
+     , Show tb
+     , Ord tb
+     , Eq b
+     , Eq abs
+     , ?eb :: Grammar b
+     , ?tb :: Grammar tb
      )
   => Grammar (Expr b abs tb)
   -> Grammar (CaseBranch (Expr b abs tb) (MatchArg b tb))
@@ -166,12 +166,12 @@ caseBranch exprI = (try caseBranch')
 
 -- A default case branch only
 defaultOnly
-  :: (Show b
-     ,Show abs
-     ,Show tb
-     ,Ord tb
-     ,Eq b
-     ,Eq abs
+  :: ( Show b
+     , Show abs
+     , Show tb
+     , Ord tb
+     , Eq b
+     , Eq abs
      )
   => Grammar (Expr b abs tb)
   -> Grammar (CaseBranches (Expr b abs tb) (MatchArg b tb))
