@@ -111,8 +111,8 @@ spec = parserSpec lispySources lispyParser
 
       , _functionTestCases = TestFunctionSources
           { _idTestCase    = "Λ KIND λ?0 (0)"
-          , _constTestCase = "Λ KIND KIND λ?1 ?0 (1)"
-          , _applyTestCase = "Λ KIND KIND λ(→ ?1 ?0) ?1 (@1 (0))"
+          , _constTestCase = "Λ KIND (ΛKIND (λ?1 (λ?0 (1))))"
+          , _applyTestCase = "Λ KIND (ΛKIND (λ(→ ?1 ?0) (λ?1 (@1 (0)))))"
           }
       }
 
