@@ -67,8 +67,8 @@ spec = parserSpec lispySources lispyParser
       , _naturalTestCases = TestNaturalSources
           { _subTwoTestCase = Text.unlines
               ["λNat (CASE 0"
-              ,"         (|" <> sPatText (sPatText "?") <>" 0)"
-              ,"         "<>zTermText
+              ,"         (| (+1 (?)) (0))"   -- Match successor
+              ,"         (+0 (*) (*) Nat)" -- Default branch: zero
               ,"     )"
               ]
           }

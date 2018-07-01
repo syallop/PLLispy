@@ -45,12 +45,14 @@ matchArg
      )
   => Grammar (MatchArg b tb)
 matchArg
-  = bind
- \|/ (matchBinding ?eb)
- \|/ matchSum
- \|/ matchProduct
- \|/ matchUnion
- \|/ (try $ betweenParens matchArg)
+  = token $ alternatives
+    [ bind
+    , matchBinding ?eb
+    , matchSum
+    , matchProduct
+    , matchUnion
+    , betweenParens matchArg
+    ]
 
 -- A plus followed by an index and a matchArg
 -- E.G.: +0 ?
@@ -87,7 +89,7 @@ matchUnion
      ,?tb :: Grammar tb
      )
   => Grammar (MatchArg b tb)
-matchUnion = union */ (matchUnionIso \$/ typ ?tb \*/ (spaceRequired */ matchArg))
+matchUnion = union */ (matchUnionIso \$/ typ ?tb \*/ (matchArg))
 
 -- A var
 matchBinding

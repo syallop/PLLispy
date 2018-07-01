@@ -33,7 +33,7 @@ spec = parserSpec lispySources lispyParser
           }
 
       , _sumTestCases     = TestSumSources
-          { _sumTestCase = "(+ (*))"
+          { _sumTestCase = "(+0 (*))"
           }
 
       , _productTestCases = TestProductSources
@@ -41,7 +41,7 @@ spec = parserSpec lispySources lispyParser
           }
 
       , _unionTestCases   = TestUnionSources
-          { _unionTestCase = "∪ (*)"
+          { _unionTestCase = "∪ (*) (*)"
           }
 
       , _bindingTestCases = TestBindingSources

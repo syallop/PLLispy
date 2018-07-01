@@ -28,8 +28,11 @@ import PL.Name
 import PL.TyVar
 import PL.Type hiding (arrowise)
 
-tyVar :: Grammar TyVar
-tyVar = charIs '?' */ (tyVarIso \$/ natural)
+tyVar
+  :: Grammar TyVar
+tyVar =
+  charIs '?' */
+  (tyVarIso \$/ natural)
 
 -- A name is an uppercase followed by zero or more lower case characters
 name :: Grammar Text.Text
@@ -75,7 +78,7 @@ typI = let tb = ?tb in typ tb
 
 -- A type is one of several variants, and may be nested in parenthesis
 typ :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-typ tb = alternatives
+typ tb = token $ alternatives
   [ typeLamTyp tb
   , typeAppTyp tb
   , arrowTyp tb
@@ -84,6 +87,6 @@ typ tb = alternatives
   , unionTyp tb
   , namedTyp
   , typeBindingTyp tb
-  , try $ betweenParens $ typ tb
+  , betweenParens $ typ tb
   ]
 

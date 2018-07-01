@@ -23,11 +23,11 @@ kindAbs :: Grammar Kind
 kindAbs = kind
 
 kind :: Grammar Kind
-kind =  kind'
-    \|/ (try $ betweenParens kind')
-  where
-    kind' :: Grammar Kind
-    kind' = simpleKind \|/ arrowKind
+kind =  token $ alternatives $
+  [ simpleKind
+  , arrowKind
+  , betweenParens kind
+  ]
 
 simpleKind :: Grammar Kind
 simpleKind = textIs "KIND" */ rpure Kind
