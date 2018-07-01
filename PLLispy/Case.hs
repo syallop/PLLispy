@@ -60,11 +60,11 @@ caseStatement
   => Grammar (Expr b abs tb)
   -> Grammar (Case (Expr b abs tb) (MatchArg b tb))
 caseStatement exprGr
-  = caseIso \$/ permissive exprGr
+  = caseIso \$/ exprGr
             \*/ (spaceRequired */ caseBody' exprGr)
   where
     caseBody' exprGr
-      = (try . betweenParens . permissive . caseBody $ exprGr)
+      = (try . betweenParens . caseBody $ exprGr)
      \|/ caseBody exprGr
 
 -- Either someCaseBranches or
@@ -85,8 +85,12 @@ caseBody
      )
   => Grammar (Expr b abs tb)
   -> Grammar (CaseBranches (Expr b abs tb) (MatchArg b tb))
-caseBody scrutineeGr =  (try $ caseBranches scrutineeGr)
-                    \|/ (defaultOnly scrutineeGr)
+caseBody scrutineeGr =
+  token $ alternatives
+    [ caseBranches scrutineeGr
+    , defaultOnly scrutineeGr
+    , betweenParens $ caseBody scrutineeGr
+    ]
 
 -- One or many casebranch then a possible default expr
 -- ((|? (\Far 0))
@@ -110,6 +114,10 @@ caseBranches scrutineeGr =
     \*/ (try (justI \$/ spaceAllowed */ scrutineeGr) \|/ rpure Nothing)
   where
     someCaseBranches' scrutineeGr =
+      alternatives
+        [ someCaseBranches scrutineeGr
+
+        ]
       (try . betweenParens . someCaseBranches $ scrutineeGr)
         \|/ (someCaseBranches scrutineeGr)
 
