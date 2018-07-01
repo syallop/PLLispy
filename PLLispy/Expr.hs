@@ -21,7 +21,7 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as Set
 import Data.Text
 
-import PLGrammar hiding (permissive)
+import PLGrammar
 import Reversible
 import Reversible.Iso
 
@@ -38,8 +38,6 @@ import PL.Kind
 import PL.Type
 import PL.Var
 
-permissive = id
-
 -- | An 'Expr's lambda abstracts over some value which it accepts as it's argument.
 -- This grammar is a simple type definition which may therefore be used in an
 -- 'Expr b (Type tb) tb'.
@@ -49,7 +47,7 @@ typeAbs
      )
   => Grammar tb
   -> Grammar (Type tb)
-typeAbs tb = permissive typ tb
+typeAbs tb = permissive $ typ tb
 
 -- Implicitly bind Grammars for expression bindings, abstractions and type bindings
 -- TODO: This is probably a failed experiment.
