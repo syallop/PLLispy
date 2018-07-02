@@ -36,12 +36,12 @@ import PL.Type
 import PL.Var
 
 matchArg
-  :: (Show b
-     ,Show tb
-     ,Ord tb
-     ,Eq b
-     ,?eb :: Grammar b
-     ,?tb :: Grammar tb
+  :: ( Show b
+     , Show tb
+     , Ord tb
+     , Eq b
+     , ?eb :: Grammar b
+     , ?tb :: Grammar tb
      )
   => Grammar (MatchArg b tb)
 matchArg
@@ -57,54 +57,67 @@ matchArg
 -- A plus followed by an index and a matchArg
 -- E.G.: +0 ?
 matchSum
-  :: (Show b
-     ,Show tb
-     ,Ord tb
-     ,Eq b
-     ,?eb :: Grammar b
-     ,?tb :: Grammar tb
+  :: ( Show b
+     , Show tb
+     , Ord tb
+     , Eq b
+     , ?eb :: Grammar b
+     , ?tb :: Grammar tb
      )
   => Grammar (MatchArg b tb)
-matchSum = plus */ (matchSumIso \$/ natural \*/ (spaceRequired */ matchArg))
+matchSum =
+  plus */                        -- A token plus character followed by
+  (matchSumIso \$/ token natural -- the index into the sum type
+               \*/ matchArg)     -- then the match for that type.
 
 -- A star followed by zero or more matchArgs
 matchProduct
-  :: (Show b
-     ,Show tb
-     ,Ord tb
-     ,Eq b
-     ,?eb :: Grammar b
-     ,?tb :: Grammar tb
+  :: ( Show b
+     , Show tb
+     , Ord tb
+     , Eq b
+     , ?eb :: Grammar b
+     , ?tb :: Grammar tb
      )
   => Grammar (MatchArg b tb)
-matchProduct = star */ (matchProductIso \$/ rmany (spaceRequired */ matchArg))
+matchProduct =
+  star */                              -- A token star character followed by
+  (matchProductIso \$/ rmany matchArg) -- a match for each component of the product
 
 -- A union followed by a type index and a matchArg
 matchUnion
-  :: (Show b
-     ,Show tb
-     ,Ord tb
-     ,Eq b
-     ,?eb :: Grammar b
-     ,?tb :: Grammar tb
+  :: ( Show b
+     , Show tb
+     , Ord tb
+     , Eq b
+     , ?eb :: Grammar b
+     , ?tb :: Grammar tb
      )
   => Grammar (MatchArg b tb)
-matchUnion = union */ (matchUnionIso \$/ typ ?tb \*/ (matchArg))
+matchUnion =
+  union */                     -- A union character followed by
+  (matchUnionIso \$/ typ ?tb   -- the type index into a union type
+                 \*/ matchArg) -- then the match for that type.
 
 -- A var
 matchBinding
-  :: (Show b, Show tb)
+  :: ( Show b
+     , Show tb
+     )
   => Grammar b
   -> Grammar (MatchArg b tb)
-matchBinding eb = matchBindingIso \$/ eb
+matchBinding eb =
+  matchBindingIso \$/ eb -- Match the var binding by the provided grammar.
 
 -- A '?'
 bind
-  :: (Show b
-     ,Show tb
-     ,Eq b
-     ,Eq tb
+  :: ( Show b
+     , Show tb
+     , Eq b
+     , Eq tb
      )
   => Grammar (MatchArg b tb)
-bind = question */ (matchBindIso \$/ rpure ())
+bind =
+  question */                 -- A question character indicates an expression is to be bound.
+  (matchBindIso \$/ rpure ())
 

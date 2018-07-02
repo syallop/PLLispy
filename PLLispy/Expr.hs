@@ -132,7 +132,8 @@ bindingExpr eb = bindingIso \$/ eb
 -- abstracted it. It is a natural number 0,1,2..
 var
   :: Grammar Var
-var = varIso \$/ natural
+var =
+  varIso \$/ natural -- A variable is given by a natural number.
 
 -- The 'Sum' constructor is defined by:
 sumExpr
@@ -140,7 +141,7 @@ sumExpr
   => Grammar (Expr b abs tb)
 sumExpr =
   plus */                                         -- A token '+' character followed by
-  (sumIso \$/ natural                             -- an index into overall sum type
+  (sumIso \$/ token natural                       -- an index into overall sum type
           \*/ (spaceRequired */ exprI)            -- then the expression preceeded by a required space
           \*/ (rmany (spaceRequired */ typ ?tb))) -- then zero or many of the constituent sum types, each preceeded by a required space.
 
@@ -178,7 +179,9 @@ unionExpr =
 --    (|? (\MatchedBar 0)))
 --        (\Default 0))
 caseAnalysis :: (Show b,Show abs,Show tb,Ord tb,Implicits b abs tb,Eq b,Eq abs) => Grammar (Expr b abs tb)
-caseAnalysis = textIs "CASE" */ spaceAllowed */ (caseAnalysisIso \$/ caseStatement exprI)
+caseAnalysis =
+  textIs "CASE" */                          -- A token "CASE" string followed by
+  (caseAnalysisIso \$/ caseStatement exprI) -- the case statement grammar.
 
 -- Parse an expression when /implicitly/ passed porsers for:
 -- - ?eb  Expression bindings    (E.G. Var)

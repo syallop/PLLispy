@@ -43,23 +43,24 @@ spec = parserSpec lispySources lispyParser
       , _booleanTestCases = TestBooleanSources
           { _andTestCase = Text.unlines
               ["λBool λBool (CASE 0"
-              ,"                  ("   -- case matches
+              ,"                  "   -- case matches
               ,"                    (" -- Non-default matches
-              ,"                      (|"<>falsePatText<>" "<>falseTermText<>")" -- first (and only) match
+              ,"                      (|(+0 (*)) (+0 (*) (*) (*)))" -- first (and only) match
               ,"                    )"
               ,"                    (" -- default match
               ,"                      (CASE 1"
-              ,"                            (" -- case matches
+              ,"                            " -- case matches
               ,"                              (" --Non-default matches
-              ,"                                (|"<>falsePatText<>" "<>falseTermText<>")" -- first (and only) match
+              ,"                                (|(+0 (*)) (+0 (*) (*) (*)))" -- first (and only) match
+              ,"                                (|(+0 (*)) (+0 (*) (*) (*)))" -- first (and only) match
               ,"                              )"
               ,"                              (" -- default match
-              ,"                                "<>trueTermText<>"" -- default is the true expr
+              ,"                                (+1 (*) (*) (*))" -- default is the true expr
               ,"                              )"
-              ,"                            )"
+              ,"                            "
               ,"                      )"
               ,"                    )"
-              ,"                  )"
+              ,"                  "
               ,"            )"
               ]
           }
@@ -104,7 +105,7 @@ spec = parserSpec lispySources lispyParser
               ,"                (| (∪ Nat  (+1 ?))   (+1 (*) (*) (*)))"
               ,"                (| (∪ Bool (+1 (*))) (+1 (*) (*) (*)))"
               ,""
-              ,"                (+0 (*) (*) (*))"
+              ,"                (+ 0 (*) (*) (*))"
               ,"              )"
               ]
           }

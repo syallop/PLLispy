@@ -37,7 +37,7 @@ import PL.Type
 import PL.Var
 
 -- An entire case statement starts with "CASE" followed by a scrutinee then the
--- case branches.
+-- case branches. This grammar is everything but the "CASE" token.
 -- (\Scrut 0)
 -- ((|? (\Matchedfoo 0))
 -- (|? (\Matchedbar 0)))
@@ -60,12 +60,14 @@ caseStatement
   => Grammar (Expr b abs tb)
   -> Grammar (Case (Expr b abs tb) (MatchArg b tb))
 caseStatement exprGr
-  = caseIso \$/ exprGr
-            \*/ (spaceRequired */ caseBody' exprGr)
+  = caseIso \$/ exprGr           -- The scrutinee expression is given first followed by
+            \*/ caseBody' exprGr -- a space then the case body.
   where
     caseBody' exprGr
-      = (try . betweenParens . caseBody $ exprGr)
-     \|/ caseBody exprGr
+      = token $ alternatives
+          [ caseBody exprGr
+          , betweenParens $ caseBody' exprGr
+          ]
 
 -- Either someCaseBranches or
 -- ((|? (\Far 0))
@@ -87,10 +89,13 @@ caseBody
   -> Grammar (CaseBranches (Expr b abs tb) (MatchArg b tb))
 caseBody scrutineeGr =
   token $ alternatives
-    [ caseBranches scrutineeGr
-    , defaultOnly scrutineeGr
+    [ caseBranches scrutineeGr         -- case branches with an optional default
+    , defaultOnly scrutineeGr              -- or just a default
     , betweenParens $ caseBody scrutineeGr
     ]
+
+-- TODO: Ditch some of the tries below this point/ rework cases. Perhaps delete
+-- the default branch and use a match of (|? ...)
 
 -- One or many casebranch then a possible default expr
 -- ((|? (\Far 0))
@@ -110,16 +115,17 @@ caseBranches
   -> Grammar (CaseBranches (Expr b abs tb) (MatchArg b tb))
 caseBranches scrutineeGr =
   caseBranchesIso
-    \$/ (someCaseBranches' scrutineeGr)
-    \*/ (try (justI \$/ spaceAllowed */ scrutineeGr) \|/ rpure Nothing)
+    \$/ someCaseBranches' scrutineeGr -- some case branches
+    \*/ optionalDefaultBranch         -- and an optional default
   where
     someCaseBranches' scrutineeGr =
-      alternatives
-        [ someCaseBranches scrutineeGr
-
+      token $ alternatives
+        [ try $ someCaseBranches scrutineeGr
+        , try $ betweenParens $ someCaseBranches' scrutineeGr
         ]
-      (try . betweenParens . someCaseBranches $ scrutineeGr)
-        \|/ (someCaseBranches scrutineeGr)
+
+    optionalDefaultBranch =
+      try (justI \$/ scrutineeGr) \|/ rpure Nothing
 
     justI :: Iso a (Maybe a)
     justI = Iso
@@ -142,8 +148,8 @@ someCaseBranches
   -> Grammar (NonEmpty (CaseBranch (Expr b abs tb) (MatchArg b tb)))
 someCaseBranches exprI =
   nonEmptyI
-    \$/ (caseBranch exprI)
-    \*/ (rmany $ spaceRequired */ caseBranch exprI)
+    \$/ (try $ caseBranch exprI)         -- One required case branch
+    \*/ (try $ rmany $ try $ caseBranch exprI) -- 0-many more case branches
   where
     nonEmptyI :: Iso (a,[a]) (NonEmpty a)
     nonEmptyI = Iso
@@ -166,11 +172,16 @@ caseBranch
      )
   => Grammar (Expr b abs tb)
   -> Grammar (CaseBranch (Expr b abs tb) (MatchArg b tb))
-caseBranch exprI = (try caseBranch')
-          \|/ (try $ betweenParens caseBranch')
+caseBranch exprI =
+  token $ alternatives
+    [ try $ caseBranch'               -- A single case branch
+    , try $ betweenParens caseBranch'
+    ]
   where
-    caseBranch' = charIs '|' */ (caseBranchIso \$/ matchArg
-                                               \*/ (spaceRequired */ exprI))
+    caseBranch' =
+      charIs '|' */                -- A token bar character followed by
+      (caseBranchIso \$/ matchArg  -- a matchArg to match the expression
+                     \*/ exprI)    -- and the resulting expression if the match succeeds.
 
 -- A default case branch only
 defaultOnly
@@ -183,5 +194,6 @@ defaultOnly
      )
   => Grammar (Expr b abs tb)
   -> Grammar (CaseBranches (Expr b abs tb) (MatchArg b tb))
-defaultOnly exprI = defaultOnlyIso \$/ exprI
+defaultOnly exprI =
+  defaultOnlyIso \$/ exprI -- The default branch is just an expression.
 
