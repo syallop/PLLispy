@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                PLLispy
-version:             0.1.0.0
+version:             0.2.0.0
 -- synopsis:            
 -- description:         
 -- license:             
@@ -59,7 +59,7 @@ test-suite hspec
                    , QuickCheck
                    , quickcheck-instances
                    , PL
-                   , PLGrammar
+                   , PLGrammar >= 0.4
                    , Reversible
                    , PLParser
                    , PLPrinter

@@ -52,7 +52,6 @@ spec = parserSpec lispySources lispyParser
               ,"                            " -- case matches
               ,"                              (" --Non-default matches
               ,"                                (|(+0 (*)) (+0 (*) (*) (*)))" -- first (and only) match
-              ,"                                (|(+0 (*)) (+0 (*) (*) (*)))" -- first (and only) match
               ,"                              )"
               ,"                              (" -- default match
               ,"                                (+1 (*) (*) (*))" -- default is the true expr
@@ -68,7 +67,7 @@ spec = parserSpec lispySources lispyParser
       , _naturalTestCases = TestNaturalSources
           { _subTwoTestCase = Text.unlines
               ["λNat (CASE 0"
-              ,"         (| (+1 (?)) (0))"   -- Match successor
+              ,"         (| (+1 (+1 ?)) (0))"   -- Match successor
               ,"         (+0 (*) (*) Nat)" -- Default branch: zero
               ,"     )"
               ]
