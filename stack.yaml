@@ -1,3 +1,4 @@
+resolver: lts-13.1
 flags:
 extra-package-dbs: []
 packages:
@@ -15,4 +16,4 @@ packages:
 extra-deps:
 - megaparsec-6.4.0
 - parser-combinators-0.4.0
-resolver: lts-9.18
+allow-newer: true
