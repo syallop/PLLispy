@@ -1,7 +1,14 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE
+    OverloadedStrings
+  , FlexibleInstances
+  #-}
 module PLLispy.Test.MatchArgSpec where
 
 import PL
+import PL.Var
+import PL.Expr
+import PL.TyVar
+
 import PL.Test.MatchArg
 import PL.Test.MatchArg.Bind
 import PL.Test.MatchArg.Sum
@@ -13,6 +20,8 @@ import PLLispy
 import PLLispy.Expr
 import PLLispy.Type
 import PLLispy.MatchArg
+
+import PLPrinter
 
 import Data.Text
 
