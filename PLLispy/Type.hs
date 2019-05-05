@@ -88,5 +88,6 @@ typ tb = token $ alternatives
   , namedTyp
   , typeBindingTyp tb
   , betweenParens $ typ tb
+  -- TODO: BigArrow?
   ]
 

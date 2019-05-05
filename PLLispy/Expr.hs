@@ -199,6 +199,8 @@ exprI = token $ alternatives
   , bindingExpr ?eb
   , caseAnalysis
   , betweenParens exprI
+  -- TODO:
+  -- Big lambda type bindings?
   ]
 
 -- Parse an expression given parsers for:
