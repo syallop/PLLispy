@@ -25,6 +25,9 @@ library
                      , PLLispy.ExprIso
                      , PLLispy.Kind
                      , PLLispy.CaseIso
+
+                     , PLLispy.Test.Sources.Expr
+                     , PLLispy.Test.Sources.MatchArg
   -- other-modules:       
   other-extensions:    MultiWayIf
                      , OverloadedStrings

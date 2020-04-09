@@ -19,6 +19,7 @@ import PL.Test.MatchArg.Union
 import PL.Test.MatchArg.Binding
 
 import PLLispy
+import PLLispy.Test.Sources.MatchArg
 import PLLispy.Expr
 import PLLispy.Type
 import PLLispy.MatchArg
@@ -34,7 +35,7 @@ import Test.Hspec
 
 spec
   :: Spec
-spec = parserSpec lispySources lispyParser ppType ppMatchArg
+spec = parserSpec sources lispyParser ppType ppMatchArg
   where
     typeGrammar :: Grammar (Type TyVar)
     typeGrammar = typ tyVar
@@ -49,29 +50,4 @@ spec = parserSpec lispySources lispyParser ppType ppMatchArg
     ppMatchArg = fromMaybe mempty . pprint (toPrinter matchArgGrammar)
 
     lispyParser = toParser matchArgGrammar
-
-    lispySources :: TestMatchArgSources
-    lispySources = TestMatchArgSources
-      { _bindTestCases    = TestBindSources
-          { _bindEmptySum     = "?"
-          , _bindEmptyProduct = "?"
-          , _bindNamedBoolean = "?"
-          }
-
-      , _sumTestCases     = TestSumSources
-          { _sumTestCase = "(+0 (*))"
-          }
-
-      , _productTestCases = TestProductSources
-          { _productTestCase = "(*)"
-          }
-
-      , _unionTestCases   = TestUnionSources
-          { _unionTestCase = "∪ (*) (*)"
-          }
-
-      , _bindingTestCases = TestBindingSources
-          { _bindingTestCase = "0"
-          }
-      }
 
