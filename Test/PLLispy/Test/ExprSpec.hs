@@ -32,6 +32,7 @@ import Data.Maybe
 
 import Test.Hspec
 
+-- Test expressions parse, reduce and type check from example sources
 spec
   :: Spec
 spec = parserSpec sources lispyParser ppExpr ppType

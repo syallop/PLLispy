@@ -33,6 +33,8 @@ import Data.Maybe
 
 import Test.Hspec
 
+-- Test Case analysis matchargs parse, reduce and type check from example
+-- sources
 spec
   :: Spec
 spec = parserSpec sources lispyParser ppType ppMatchArg
