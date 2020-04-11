@@ -292,6 +292,7 @@ flattenExpectedDoc e = List.nub $ case e of
        , text . render . mconcat . flattenExpectedDoc $ e1
        ]
 
+
 -- Turn an 'Expected' into a list of each expected alternative
 flattenExpected :: Expected -> [Text]
 flattenExpected = map render . flattenExpectedDoc

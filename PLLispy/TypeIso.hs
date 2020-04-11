@@ -17,6 +17,7 @@ import PL.FixType
 
 import qualified Data.Set as Set
 import qualified Data.Text as Text
+import Data.List.NonEmpty (NonEmpty)
 
 import Data.Char
 
@@ -70,7 +71,7 @@ arrowIso = Iso
                      _ -> Nothing
   }
 
-sumTIso :: Iso [Type tb] (Type tb)
+sumTIso :: Iso (NonEmpty (Type tb)) (Type tb)
 sumTIso = Iso
   {_forwards = \tys
                 -> Just . fixType . SumT $ tys

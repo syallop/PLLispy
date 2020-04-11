@@ -28,6 +28,20 @@ import PL.Name
 import PL.TyVar
 import PL.Type hiding (arrowise)
 
+import Data.List.NonEmpty (NonEmpty) 
+import qualified Data.List.NonEmpty as NE
+
+nonEmptyIso :: Iso [a] (NonEmpty a)
+nonEmptyIso = Iso
+  {_forwards = \xs -> case xs of
+                 []
+                   -> Nothing
+
+                 (head:tail)
+                   -> Just $ head NE.:| tail
+  ,_backwards = Just . NE.toList
+  }
+
 tyVar
   :: Grammar TyVar
 tyVar =
@@ -47,7 +61,7 @@ namedTyp = namedIso \$/ typeName
 
 -- A plus followed by zero or more types
 sumTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-sumTyp tb = plus */ (sumTIso \$/ rmany (spaceRequired */ typ tb))
+sumTyp tb = plus */ (sumTIso \$/ (nonEmptyIso \$/ rmany1 (spaceRequired */ typ tb)))
 
 -- A star followed by zero or more types
 productTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)

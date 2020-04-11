@@ -16,6 +16,7 @@ import PL.Kind
 import PL.Type
 import PL.Var
 
+import Data.List.NonEmpty (NonEmpty)
 import qualified Data.Set as Set
 
 {- Iso's that map between constructors and their contained values
@@ -65,7 +66,7 @@ caseAnalysisIso = Iso
                     _ -> Nothing
   }
 
-sumIso :: Iso (Int, (Expr b abs tb, [Type tb])) (Expr b abs tb)
+sumIso :: Iso (Int, (Expr b abs tb, NonEmpty (Type tb))) (Expr b abs tb)
 sumIso = Iso
   {_forwards = \(sumIx, (expr, inTypes))
                -> Just . fixExpr . Sum expr sumIx $ inTypes

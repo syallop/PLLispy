@@ -143,7 +143,7 @@ sumExpr =
   plus */                                         -- A token '+' character followed by
   (sumIso \$/ token natural                       -- an index into overall sum type
           \*/ (spaceRequired */ exprI)            -- then the expression preceeded by a required space
-          \*/ (rmany (spaceRequired */ typ ?tb))) -- then zero or many of the constituent sum types, each preceeded by a required space.
+          \*/ (nonEmptyIso \$/ rmany1 (spaceRequired */ typ ?tb))) -- then zero or many of the constituent sum types, each preceeded by a required space.
 
 -- The 'Product' constructor is defined by:
 productExpr

@@ -5,7 +5,7 @@ packages:
 - '.'
 - location:
     git: https://github.com/syallop/PL
-    commit: 528db1a8918270a7c8c1c8107494ec05a0b02d8c
+    commit: c5c4ed1ca29728edb670064e1f0b43c07c654ae1
   extra-dep: true
 - location:
     git: https://github.com/syallop/PLParser
