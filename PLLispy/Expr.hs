@@ -89,7 +89,7 @@ lamExpr
   => Grammar (Expr b abs tb)
 lamExpr =
   lambda */                                             -- A token lambda character followed by
-  (lamIso \$/ ?abs                                      -- an abstraction
+  (lamIso \$/ (spacePreferred */ parensPreferred ?abs)  -- an abstraction
           \*/ (spaceRequired */ parensPreferred exprI)) -- then an expression preceeded by a required space.
 
 -- The 'BigLam' big lambda constructor is defined by:

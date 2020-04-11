@@ -80,7 +80,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                                        ,_expr = FixExpr $ Binding $ VZ
                                                        }
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "\\Foo (0)"
+        , _shouldPrint          = Just "\\ (Foo) (0)"
         }
 
     describe "Application" $ do
