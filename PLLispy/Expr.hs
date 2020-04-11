@@ -88,9 +88,9 @@ lamExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 lamExpr =
-  lambda */                             -- A token lambda character followed by
-  (lamIso \$/ ?abs                      -- an abstraction
-          \*/ (spaceRequired */ exprI)) -- then an expression preceeded by a required space.
+  lambda */                                             -- A token lambda character followed by
+  (lamIso \$/ ?abs                                      -- an abstraction
+          \*/ (spaceRequired */ parensPreferred exprI)) -- then an expression preceeded by a required space.
 
 -- The 'BigLam' big lambda constructor is defined by:
 -- A big lambda followed by one or more kind abstractions then an expression.
@@ -107,18 +107,18 @@ appExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 appExpr =
-  at */                                 -- A token 'at' character followed by
-  (appIso \$/ exprI                     -- an expression
-          \*/ (spaceRequired */ exprI)) -- then another expression preceeded by a required space.
+  at */                                                 -- A token 'at' character followed by
+  (appIso \$/ (spaceRequired */ parensPreferred exprI)  -- an expression
+          \*/ (spaceRequired */ parensPreferred exprI)) -- then another expression preceeded by a required space.
 
 -- The 'BigApp' constructor is defined by:
 bigAppExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 bigAppExpr =
-  bigAt */                                     -- A token 'big at' character followed by
-  (bigAppIso \$/ exprI                         -- an expression
-             \*/ (spaceRequired */ (typ ?tb))) -- then a type preceeded by a required space.
+  bigAt */                                                      -- A token 'big at' character followed by
+  (bigAppIso \$/ (spaceRequired */ parensPreferred exprI)       -- an expression
+             \*/ (spaceRequired */ parensPreferred (typ ?tb)))  -- then a type preceeded by a required space.
 
 -- The binding constructor is some form of reference to a value bound by a
 -- lambda abstraction. It is likely to be an index or name.
@@ -140,28 +140,28 @@ sumExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 sumExpr =
-  plus */                                         -- A token '+' character followed by
-  (sumIso \$/ token natural                       -- an index into overall sum type
-          \*/ (spaceRequired */ exprI)            -- then the expression preceeded by a required space
-          \*/ (nonEmptyIso \$/ rmany1 (spaceRequired */ typ ?tb))) -- then zero or many of the constituent sum types, each preceeded by a required space.
+  plus */                                                                             -- A token '+' character followed by
+  (sumIso \$/ token natural                                                           -- an index into overall sum type
+          \*/ (spaceRequired */ parensPreferred exprI)                                -- then the expression preceeded by a required space
+          \*/ (spaceRequired */ (sepBy1 spacePreferred (parensPreferred $ typ ?tb)))) -- then one or many of the constituent sum types, each preceeded by a required space.
 
 -- The 'Product' constructor is defined by:
 productExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 productExpr =
-  star */                                         -- A token 'star' followed by
-  (productIso \$/ rmany (spaceRequired */ exprI)) -- zero or many expressions, each preceeded by a required space.
+  star */                                                         -- A token 'star' followed by
+  (productIso \$/ rmany (spaceRequired */ parensPreferred exprI)) -- zero or many expressions, each preceeded by a required space.
 
 -- The 'Union' constructor is defined by:
 unionExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 unionExpr =
-  union */                                                       -- A token 'union' followed by
-  (unionIso \$/ (typ ?tb)                                        -- a type index into the overall union type
-            \*/ (spaceRequired */ exprI)                         -- then the expression preceeded by a required space
-            \*/ (setIso \$/ rmany (spaceRequired */ (typ ?tb)))) -- then zero or many of the constituent union types, each preceeded by a required space.
+  union */                                                                       -- A token 'union' followed by
+  (unionIso \$/ (spaceRequired */ parensPreferred (typ ?tb))                     -- a type index into the overall union type
+            \*/ (spaceRequired */ parensPreferred exprI)                         -- then the expression preceeded by a required space
+            \*/ (setIso \$/ rmany (spaceRequired */ parensPreferred (typ ?tb)))) -- then zero or many of the constituent union types, each preceeded by a required space.
 
 
 -- "CASE", then an expr then casebranches
@@ -218,4 +218,65 @@ expr eb abs tb
         ?abs = abs
         ?tb  = tb
        in exprI
+
+-- Forwards: Parenthesis are allowed but not required
+-- Backwards: Parenthesis are used
+parensPreferred
+  :: (Show a)
+  => Grammar a
+  -> Grammar a
+parensPreferred g = alternatives
+  [ try $ textIs "(" */ g \* textIs ")"
+  , g
+  ]
+
+-- TODO: Fix naming in plgrammar
+spacePreferred = spacePrefered
+
+-- TODO: Move to plgrammar
+sepBy1
+  :: (Show a, Eq a)
+  => Grammar ()
+  -> Grammar a
+  -> Grammar (NonEmpty a)
+sepBy1 sepG g = iso \$/ sepBy1' sepG g
+  where
+    iso :: Iso [a] (NonEmpty a)
+    iso = Iso
+      {_forwards = \as -> case as of
+         []
+           -> Nothing
+         (a:as)
+           -> Just $ a NE.:| as
+      ,_backwards = \ne -> Just $ NE.toList ne
+      }
+
+-- TODO: Move to plgrammar
+sepBy1'
+  :: (Show a, Eq a)
+  => Grammar ()
+  -> Grammar a
+  -> Grammar [a]
+sepBy1' sepG g = iso \$/ g \*/ alternatives [ try $ sepG */ sepBy1' sepG g
+                                            , rpure []
+                                            ]
+  where
+    iso :: Iso (a,[a]) [a]
+    iso = Iso
+      { _forwards  = \(a,as) -> Just $ a:as
+      , _backwards = \as -> case as of
+        a:as
+          -> Just (a,as)
+        _ -> Nothing
+      }
+
+-- TODO: Move to plgrammar
+sepBy
+  :: (Show a, Eq a)
+  => Grammar ()
+  -> Grammar a
+  -> Grammar [a]
+sepBy sepG g = alternatives [ try $ sepBy1' sepG g
+                            , rpure []
+                            ]
 

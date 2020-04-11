@@ -70,15 +70,15 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
   describe "Lambdas" $ do
     testcase $ TestCase
       { _testCase             = "Simple"
-      , _input                = ["\\Foo (0)"
-                                ,"\\Foo 0"
+      , _input                = ["\\Foo (0)" -- 'standard' form
+                                ,"\\Foo 0"   -- Dropping all uneccesary parens
                                 ]
       , _grammar              = exprGrammar
       , _shouldParse          = Just $ FixExpr $ Lam {_take = FixType $ Named $ "Foo"
                                                      ,_expr = FixExpr $ Binding $ VZ
                                                      }
       , _shouldParseLeftovers = ""
-      , _shouldPrint          = Just "\\Foo 0"
+      , _shouldPrint          = Just "\\Foo (0)"
       }
 
   describe "Application" $ do
@@ -94,7 +94,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                                      ,_x = FixExpr $ Binding $ VS $ VZ
                                                      }
       , _shouldParseLeftovers = ""
-      , _shouldPrint          = Just "@0 1"
+      , _shouldPrint          = Just "@ (0) (1)"
       }
 
   describe "Binding" $ do
@@ -122,7 +122,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
       , _grammar              = exprGrammar
       , _shouldParse          = Just $ FixExpr $ Sum (FixExpr $ Product []) 0 $ NE.fromList $ [FixType $ ProductT []]
       , _shouldParseLeftovers = ""
-      , _shouldPrint          = Just "+0 (*) (*)" -- TODO: Fails, printing "+0 * *"
+      , _shouldPrint          = Just "+0 (*) (*)"
       }
 
     testcase $ TestCase
@@ -134,7 +134,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
       , _grammar              = exprGrammar
       , _shouldParse          = Just $ FixExpr $ Sum (FixExpr $ Product [FixExpr $ Product []]) 0 $ NE.fromList $ [FixType $ ProductT [FixType $ ProductT []]]
       , _shouldParseLeftovers = ""
-      , _shouldPrint          = Just "+0 (* *) (* *)" -- TODO: Fails, printing "+0 * * * *"
+      , _shouldPrint          = Just "+0 (* (*)) (* (*))"
       }
 
   describe "Product values" $ do
@@ -157,7 +157,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
       , _grammar              = exprGrammar
       , _shouldParse          = Just $ FixExpr $ Product [FixExpr $ Product []]
       , _shouldParseLeftovers = ""
-      , _shouldPrint          = Just "* *"
+      , _shouldPrint          = Just "* (*)"
       }
 
     testcase $ TestCase
@@ -168,7 +168,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
       , _grammar              = exprGrammar
       , _shouldParse          = Just $ FixExpr $ Product [FixExpr $ Product [],FixExpr $ Product []]
       , _shouldParseLeftovers = ""
-      , _shouldPrint          = Just "* (*) (*)" -- TODO: Currently prints as "* * *"
+      , _shouldPrint          = Just "* (*) (*)"
       }
 
   describe "Union values" $ do
@@ -180,7 +180,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
       , _grammar              = exprGrammar
       , _shouldParse          = Just $ FixExpr $ Union (FixExpr $ Product []) (FixType $ ProductT []) (Set.fromList [FixType $ ProductT []])
       , _shouldParseLeftovers = ""
-      , _shouldPrint          = Just "∪ (*) (*) (*)" -- TODO: Currently prints as "∪* * *"
+      , _shouldPrint          = Just "∪ (*) (*) (*)"
       }
 
 
