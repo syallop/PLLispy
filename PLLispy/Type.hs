@@ -28,7 +28,7 @@ import PL.Name
 import PL.TyVar
 import PL.Type hiding (arrowise)
 
-import Data.List.NonEmpty (NonEmpty) 
+import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NE
 
 nonEmptyIso :: Iso [a] (NonEmpty a)
@@ -61,27 +61,54 @@ namedTyp = namedIso \$/ typeName
 
 -- A plus followed by zero or more types
 sumTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-sumTyp tb = plus */ (sumTIso \$/ (nonEmptyIso \$/ rmany1 (spaceRequired */ typ tb)))
+sumTyp tb =
+  plus */
+  (sumTIso \$/ (spaceRequired */ (sepBy1 spacePreferred (parensPreferred $ typ tb))))
 
 -- A star followed by zero or more types
 productTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-productTyp tb = star */ (productTIso \$/ rmany (spaceRequired */ typ tb))
+productTyp tb =
+  star */
+  (productTIso \$/ rmany (spaceRequired */ (parensPreferred $ typ tb)))
 
 -- A union followed by zero or more types
 unionTyp :: forall tb. (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-unionTyp tb = union */ (unionTIso \$/ (setIso \$/ rmany (spaceRequired */ typ tb)))
+unionTyp tb =
+  union */
+  (unionTIso \$/ (setIso \$/ rmany (spaceRequired */ (parensPreferred $ typ tb))))
 
--- An arrow followed by two or more types
+-- An arrow followed by two types
 arrowTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-arrowTyp tb = arrow */ (arrowIso \$/ typ tb \*/ (spaceRequired */ typ tb))
+arrowTyp tb =
+  arrow */ (arrowIso \$/ (spacePreferred */ (parensPreferred $ typ tb))
+                     \*/ (spaceRequired */ (parensPreferred $ typ tb)))
+
+-- A big arrow followed by a Kind and a Type
+bigArrowTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
+bigArrowTyp tb =
+  bigArrow */ (bigArrowIso \$/ (spacePreferred */ (parensPreferred kind))
+                           \*/ (spaceRequired */ (parensPreferred $ typ tb)))
+  where
+    -- TODO:
+    -- - Better ascii symbol
+    -- - Unicode symbol
+    -- If Lambda       '\'  has type '->'
+    -- Then BigLambda  '/\' has type '/->'
+    bigArrow = textIs "/->"
 
 -- A type-lambda followed by an abstracted kind, then a type
 typeLamTyp :: forall tb. (Ord tb,Show tb) => Grammar tb -> Grammar (Type tb)
-typeLamTyp tb = bigLambda */ (typeLamIso \$/ kindAbs \*/ (spaceRequired */ typ tb))
+typeLamTyp tb =
+  bigLambda */ (typeLamIso \$/ (spacePreferred */ (parensPreferred kindAbs))
+                           \*/ (spaceRequired */ (parensPreferred $ typ tb)))
 
--- An type-app followed by two or more types
+-- An type-app followed by two types
 typeAppTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-typeAppTyp tb = bigAt */ (typeAppIso \$/ typ tb \*/ (spaceRequired */ typ tb))
+typeAppTyp tb =
+  bigApp */ (typeAppIso \$/ (spacePreferred */ (parensPreferred $ typ tb))
+                        \*/ (spaceRequired */ (parensPreferred $ typ tb)))
+  where
+    bigApp = textIs "/@"
 
 -- Given a parser for the type of binding used in types, parse a type binding
 typeBindingTyp :: Show tb => Grammar tb -> Grammar (Type tb)
@@ -101,7 +128,18 @@ typ tb = token $ alternatives
   , unionTyp tb
   , namedTyp
   , typeBindingTyp tb
+  , bigArrowTyp tb
   , betweenParens $ typ tb
-  -- TODO: BigArrow?
+  ]
+
+-- Forwards: Parenthesis are allowed but not required
+-- Backwards: Parenthesis are used
+parensPreferred
+  :: (Show a)
+  => Grammar a
+  -> Grammar a
+parensPreferred g = alternatives
+  [ try $ textIs "(" */ g \* textIs ")"
+  , g
   ]
 
