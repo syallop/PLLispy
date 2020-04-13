@@ -168,7 +168,7 @@ testcase (TestCase name inputs grammar shouldParse shouldParseLeftovers shouldPr
     Nothing
       -> pure ()
     Just p
-      -> testParse p parser (shouldParseLeftovers, shouldParse)
+      -> testParse p parser ("", shouldParse)
 
 testParse :: (Show a, Eq a) => Text -> Parser a -> (Text,Maybe a) -> Spec
 testParse input parser (shouldParseLeftovers, shouldParse) =

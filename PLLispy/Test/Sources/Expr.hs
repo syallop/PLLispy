@@ -49,23 +49,12 @@ sources = TestExprSources
   , _booleanTestCases = TestBooleanSources
       { _andTestCase = Text.unlines
           ["λBool λBool (CASE 0"
-          ,"                  "   -- case matches
-          ,"                    (" -- Non-default matches
-          ,"                      (|(+0 (*)) (+0 (*) (*) (*)))" -- first (and only) match
-          ,"                    )"
-          ,"                    (" -- default match
-          ,"                      (CASE 1"
-          ,"                            " -- case matches
-          ,"                              (" --Non-default matches
-          ,"                                (|(+0 (*)) (+0 (*) (*) (*)))" -- first (and only) match
-          ,"                              )"
-          ,"                              (" -- default match
-          ,"                                (+1 (*) (*) (*))" -- default is the true expr
-          ,"                              )"
-          ,"                            "
-          ,"                      )"
-          ,"                    )"
-          ,"                  "
+          ,"              (| (+0 (*)) (+0 (*) (*) (*)))"
+
+          ,"              (CASE 1"
+          ,"               (| (+0 (*)) (+0 (*) (*) (*)))"
+          ,"               (+1 (*) (*) (*))"
+          ,"              )"
           ,"            )"
           ]
       }
@@ -73,8 +62,8 @@ sources = TestExprSources
   , _naturalTestCases = TestNaturalSources
       { _subTwoTestCase = Text.unlines
           ["λNat (CASE 0"
-          ,"         (| (+1 (+1 ?)) (0))"   -- Match successor
-          ,"         (+0 (*) (*) Nat)" -- Default branch: zero
+          ,"       (| (+1 (+1 ?)) (0))" -- Match successor
+          ,"       (+0 (*) (*) Nat)"     -- Default branch: zero
           ,"     )"
           ]
       }
@@ -82,13 +71,13 @@ sources = TestExprSources
   , _sumTestCases = TestSumSources
       { _sumThreeTestCase = Text.unlines
           ["λ(+ Nat Bool Nat) (CASE 0"
-          ,"                   (| (+ 0 +1 ?)  (0))"
-          ,"                   (| (+ 0 +0 *)  (+0 (*) (*) Nat))"
-          ,"                   (| (+ 1 +0 *)  (+0 (*) (*) Nat))"
-          ,"                   (| (+ 1 +1 *)  (@ (λNat (+1 (0) (*) Nat))  (+0 (*) (*) Nat)))"
-          ,"                   (| (+ 2 +1 ?)  (+0 (*) (*) Nat))"
-          ,"                   (| (+ 2 +0 *)  (@ (λNat (+1 (0) (*) Nat))  (+0 (*) (*) Nat)))"
-          ,"                 )"
+          ,"                     (| (+0 (+1 ?)) (0))"
+          ,"                     (| (+0 (+0 *)) (+0 (*) (*) Nat))"
+          ,"                     (| (+1 (+0 *)) (+0 (*) (*) Nat))"
+          ,"                     (| (+1 (+1 *)) (@ (λNat (+1 (0) (*) Nat)) (+0 (*) (*) Nat)))"
+          ,"                     (| (+2 (+1 ?)) (+0 (*) (*) Nat))"
+          ,"                     (| (+2 (+0 *)) (@ (λNat (+1 (0) (*) Nat)) (+0 (*) (*) Nat)))"
+          ,"                    )"
           ]
       }
 
@@ -130,8 +119,8 @@ falsePatText  = "(+0 (*))"
 truePatText   = "(+1 (*))"
 
 zTermText, sTermText, zPatText :: Text
-zTermText  = "+0(*) (*) Nat"
+zTermText  = "+0 (*) (*) Nat"
 sTermText  = "λNat (+1 0 (*) Nat)"
-zPatText   = "+0(*)"
-sPatText p = "+1"<>p
+zPatText   = "+0 (*)"
+sPatText p = "+1 "<>p
 

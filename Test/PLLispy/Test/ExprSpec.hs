@@ -7,6 +7,7 @@ import PL.Expr
 import PL.FixExpr
 import PL.Var
 import PL.TyVar
+import PL.Case
 import PL.Type
 import PL.Kind
 import PL.FixType
@@ -111,10 +112,6 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _shouldPrint          = Just "0"
         }
 
-    -- TODO
-    describe "Case" $ do
-      it "Simple case analysis" $ pending
-
     describe "Sum" $ do
       testcase $ TestCase
         { _testCase             = "Sum of empty product"
@@ -183,6 +180,74 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _shouldParse          = Just $ FixExpr $ Union (FixExpr $ Product []) (FixType $ ProductT []) (Set.fromList [FixType $ ProductT []])
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "∪ (*) (*) (*)"
+        }
+
+    -- Note the 'MatchArg' patterns used in case branches are tested in
+    -- the MatchArgSpec module. These tests only cover the outer structure of
+    -- the case statement itself.
+    describe "Case" $ do
+      testcase $ TestCase
+        { _testCase             = "Default branch only"
+        , _input                = ["CASE (0) (*)"
+                                  ]
+        , _grammar              = exprGrammar
+        , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ DefaultOnly $ FixExpr $ Product []
+        , _shouldParseLeftovers = ""
+        , _shouldPrint          = Just "CASE (0) (*)"
+        }
+
+      testcase $ TestCase
+        { _testCase             = "Single branch only"
+        , _input                = ["CASE (0) (| (?) (*))"
+                                  ]
+        , _grammar              = exprGrammar
+        , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ CaseBranches (NE.fromList [CaseBranch Bind $ FixExpr $ Product []]) Nothing
+        , _shouldParseLeftovers = ""
+        , _shouldPrint          = Just "CASE (0) (| (?) (*))"
+        }
+
+      testcase $ TestCase
+        { _testCase             = "Single branch and default"
+        , _input                = ["CASE (0) (| (?) (*)) (*)"
+                                  ]
+        , _grammar              = exprGrammar
+        , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ CaseBranches (NE.fromList [CaseBranch Bind $ FixExpr $ Product []]) (Just $ FixExpr $ Product [])
+        , _shouldParseLeftovers = ""
+        , _shouldPrint          = Just "CASE (0) (| (?) (*)) (*)"
+        }
+
+      testcase $ TestCase
+        { _testCase             = "Multiple branches no default"
+        , _input                = ["CASE (0) (| (?) (*)) (| (?) (*))"
+                                  ,"(CASE (0)\n\
+                                   \       (| (?) (*))\n\
+                                   \       (| (?) (*))\n\
+                                   \)"
+                                  ]
+        , _grammar              = exprGrammar
+        , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ CaseBranches (let b = CaseBranch Bind $ FixExpr $ Product [] in NE.fromList [b,b]) Nothing
+        , _shouldParseLeftovers = ""
+        , _shouldPrint          = Just "CASE (0) (| (?) (*)) (| (?) (*))"
+        }
+
+      testcase $ TestCase
+        { _testCase             = "Multiple branches and default"
+        , _input                = ["CASE (0) (| (?) (*)) (| (?) (*)) (*)"
+                                  ]
+        , _grammar              = exprGrammar
+        , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ CaseBranches (let b = CaseBranch Bind $ FixExpr $ Product [] in NE.fromList [b,b]) (Just $ FixExpr $ Product [])
+        , _shouldParseLeftovers = ""
+        , _shouldPrint          = Just "CASE (0) (| (?) (*)) (| (?) (*)) (*)"
+        }
+
+      testcase $ TestCase
+        { _testCase             = "No branches or default"
+        , _input                = ["CASE (0)"
+                                  ]
+        , _grammar              = exprGrammar
+        , _shouldParse          = Nothing
+        , _shouldParseLeftovers = ""
+        , _shouldPrint          = Nothing
         }
 
 
@@ -387,7 +452,7 @@ testcase (TestCase name inputs grammar shouldParse shouldParseLeftovers shouldPr
     Nothing
       -> pure ()
     Just p
-      -> testParse p parser (shouldParseLeftovers, shouldParse)
+      -> testParse p parser ("", shouldParse)
 
 testParse :: (Show a, Eq a) => Text -> Parser a -> (Text,Maybe a) -> Spec
 testParse input parser (shouldParseLeftovers, shouldParse) =

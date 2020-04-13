@@ -34,6 +34,7 @@ import PLLabel
 
 import PL.Case
 import PL.Expr hiding (appise,lamise)
+import PL.FixExpr
 import PL.Kind
 import PL.Type
 import PL.Var
@@ -163,25 +164,26 @@ unionExpr =
             \*/ (spaceRequired */ parensPreferred exprI)                         -- then the expression preceeded by a required space
             \*/ (setIso \$/ rmany (spaceRequired */ parensPreferred (typ ?tb)))) -- then zero or many of the constituent union types, each preceeded by a required space.
 
-
--- "CASE", then an expr then casebranches
+-- "CASE" signifies the start of a case statement.
 --
--- CASE(\Scrut 0)
---  (((|? (\MatchedFoo 0))
---    (|? (\MatchedBar 0)))
---        (\Default 0))
---
--- or
---
--- CASE
---  (\Scrut 0)
---  (((|? (\MatchedFoo 0))
---    (|? (\MatchedBar 0)))
---        (\Default 0))
+-- It is followed by a body which contains:
+-- - A Scrutinee expression
+-- - Either:
+--   - One or many branches and an optional default expression
+--   - A default expression
 caseAnalysis :: (Show b,Show abs,Show tb,Ord tb,Implicits b abs tb,Eq b,Eq abs) => Grammar (Expr b abs tb)
 caseAnalysis =
-  textIs "CASE" */                          -- A token "CASE" string followed by
-  (caseAnalysisIso \$/ caseStatement exprI) -- the case statement grammar.
+  textIs "CASE" */
+  (caseIso \$/ (spaceRequired */ caseBody exprI))
+  where
+    caseIso :: Iso (Case (Expr b abs tb) (MatchArg b tb)) (Expr b abs tb)
+    caseIso = Iso
+      {_forwards  = Just . FixExpr . CaseAnalysis
+      ,_backwards = \e -> case e of
+         (FixExpr (CaseAnalysis c))
+           -> Just c
+         _ -> Nothing
+      }
 
 -- Parse an expression when /implicitly/ passed porsers for:
 -- - ?eb  Expression bindings    (E.G. Var)
@@ -198,7 +200,7 @@ exprI = token $ alternatives
   , unionExpr
   , bindingExpr ?eb
   , caseAnalysis
-  , betweenParens exprI
+  , betweenParens exprI -- TODO: Drop this here?
   -- TODO:
   -- Big lambda type bindings?
   ]
