@@ -133,7 +133,10 @@ typ tb = token $ alternatives
   ]
 
 parensTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-parensTyp = parensPreferred . typ
+parensTyp tb = alternatives
+  [ namedTyp
+  , parensPreferred (typ tb)
+  ]
 
 -- Forwards: Parenthesis are allowed but not required
 -- Backwards: Parenthesis are used
