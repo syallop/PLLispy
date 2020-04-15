@@ -78,8 +78,8 @@ lamExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 lamExpr =
-  lambda */                                             -- A token lambda character followed by
-  (lamIso \$/ (spaceAllowed */ ?abs)                  -- an abstraction
+  lambda */                                   -- A token lambda character followed by
+  (lamIso \$/ (spaceAllowed */ ?abs)          -- an abstraction
           \*/ (spaceRequired */ parensExprI)) -- then an expression preceeded by a required space.
 
 -- The 'BigLam' big lambda constructor is defined by:
@@ -88,17 +88,17 @@ bigLamExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 bigLamExpr =
-  bigLambda */                             -- A token big lambda character followed by
-  (bigLamIso \$/ kind                      -- a kind
-             \*/ (spaceAllowed */ exprI)) -- then an expression preceeded by a required space.
+  bigLambda */                                  -- A token big lambda character followed by
+  (bigLamIso \$/ kind                           -- a kind
+             \*/ (spaceAllowed */ parensExprI)) -- then an expression preceeded by a required space.
 
 -- The 'App' constructor is defined by:
 appExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 appExpr =
-  at */                                                 -- A token 'at' character followed by
-  (appIso \$/ (spaceAllowed */ parensExprI)  -- an expression
+  at */                                       -- A token 'at' character followed by
+  (appIso \$/ (spaceAllowed */ parensExprI)   -- an expression
           \*/ (spaceRequired */ parensExprI)) -- then another expression preceeded by a required space.
 
 -- The 'BigApp' constructor is defined by:
@@ -130,9 +130,9 @@ sumExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 sumExpr =
-  plus */                                                           -- A token '+' character followed by
-  (sumIso \$/ token natural                                         -- an index into overall sum type
-          \*/ (spaceAllowed */ parensExprI)              -- then the expression preceeded by a required space
+  plus */                                                                 -- A token '+' character followed by
+  (sumIso \$/ token natural                                               -- an index into overall sum type
+          \*/ (spaceAllowed */ parensExprI)                               -- then the expression preceeded by a required space
           \*/ (spaceRequired */ (sepBy1 spacePreferred $ parensTyp ?tb))) -- then one or many of the constituent sum types, each preceeded by a required space.
 
 -- The 'Product' constructor is defined by:
@@ -140,7 +140,7 @@ productExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 productExpr =
-  star */                                                         -- A token 'star' followed by
+  star */                                                             -- A token 'star' followed by
   (productIso \$/ (spaceAllowed */ sepBy spacePreferred parensExprI)) -- zero or many expressions, each preceeded by a required space.
 
 -- The 'Union' constructor is defined by:
@@ -148,9 +148,9 @@ unionExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 unionExpr =
-  union */                                                     -- A token 'union' followed by
-  (unionIso \$/ (spaceAllowed   */ parensTyp ?tb)                     -- a type index into the overall union type
-            \*/ (spacePreferred */ parensExprI)       -- then the expression preceeded by a required space
+  union */                                                                             -- A token 'union' followed by
+  (unionIso \$/ (spaceAllowed   */ parensTyp ?tb)                                      -- a type index into the overall union type
+            \*/ (spacePreferred */ parensExprI)                                        -- then the expression preceeded by a required space
             \*/ (setIso \$/ (spacePreferred */ sepBy spacePreferred (parensTyp ?tb)))) -- then zero or many of the constituent union types, each preceeded by a required space.
 
 -- "CASE" signifies the start of a case statement.
