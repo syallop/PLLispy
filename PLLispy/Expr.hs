@@ -79,7 +79,7 @@ lamExpr
   => Grammar (Expr b abs tb)
 lamExpr =
   lambda */                                             -- A token lambda character followed by
-  (lamIso \$/ (spacePreferred */ ?abs)                  -- an abstraction
+  (lamIso \$/ (spaceAllowed */ ?abs)                  -- an abstraction
           \*/ (spaceRequired */ parensExprI)) -- then an expression preceeded by a required space.
 
 -- The 'BigLam' big lambda constructor is defined by:
@@ -90,7 +90,7 @@ bigLamExpr
 bigLamExpr =
   bigLambda */                             -- A token big lambda character followed by
   (bigLamIso \$/ kind                      -- a kind
-             \*/ (spaceRequired */ exprI)) -- then an expression preceeded by a required space.
+             \*/ (spaceAllowed */ exprI)) -- then an expression preceeded by a required space.
 
 -- The 'App' constructor is defined by:
 appExpr
@@ -98,7 +98,7 @@ appExpr
   => Grammar (Expr b abs tb)
 appExpr =
   at */                                                 -- A token 'at' character followed by
-  (appIso \$/ (spaceRequired */ parensExprI)  -- an expression
+  (appIso \$/ (spaceAllowed */ parensExprI)  -- an expression
           \*/ (spaceRequired */ parensExprI)) -- then another expression preceeded by a required space.
 
 -- The 'BigApp' constructor is defined by:
@@ -106,9 +106,9 @@ bigAppExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 bigAppExpr =
-  bigAt */                                                      -- A token 'big at' character followed by
-  (bigAppIso \$/ (spaceRequired */ parensExprI)       -- an expression
-             \*/ (spaceRequired */ parensTyp ?tb))  -- then a type preceeded by a required space.
+  bigAt */                                         -- A token 'big at' character followed by
+  (bigAppIso \$/ (spaceAllowed */ parensExprI)     -- an expression
+             \*/ (spaceRequired */ parensTyp ?tb)) -- then a type preceeded by a required space.
 
 -- The binding constructor is some form of reference to a value bound by a
 -- lambda abstraction. It is likely to be an index or name.
@@ -132,7 +132,7 @@ sumExpr
 sumExpr =
   plus */                                                           -- A token '+' character followed by
   (sumIso \$/ token natural                                         -- an index into overall sum type
-          \*/ (spaceRequired */ parensExprI)              -- then the expression preceeded by a required space
+          \*/ (spaceAllowed */ parensExprI)              -- then the expression preceeded by a required space
           \*/ (spaceRequired */ (sepBy1 spacePreferred $ parensTyp ?tb))) -- then one or many of the constituent sum types, each preceeded by a required space.
 
 -- The 'Product' constructor is defined by:
@@ -141,7 +141,7 @@ productExpr
   => Grammar (Expr b abs tb)
 productExpr =
   star */                                                         -- A token 'star' followed by
-  (productIso \$/ rmany (spaceRequired */ parensExprI)) -- zero or many expressions, each preceeded by a required space.
+  (productIso \$/ (spaceAllowed */ sepBy spacePreferred parensExprI)) -- zero or many expressions, each preceeded by a required space.
 
 -- The 'Union' constructor is defined by:
 unionExpr
@@ -149,9 +149,9 @@ unionExpr
   => Grammar (Expr b abs tb)
 unionExpr =
   union */                                                     -- A token 'union' followed by
-  (unionIso \$/ (spaceRequired */ parensTyp ?tb)                     -- a type index into the overall union type
-            \*/ (spaceRequired */ parensExprI)       -- then the expression preceeded by a required space
-            \*/ (setIso \$/ rmany (spaceRequired */ parensTyp ?tb))) -- then zero or many of the constituent union types, each preceeded by a required space.
+  (unionIso \$/ (spaceAllowed   */ parensTyp ?tb)                     -- a type index into the overall union type
+            \*/ (spacePreferred */ parensExprI)       -- then the expression preceeded by a required space
+            \*/ (setIso \$/ (spacePreferred */ sepBy spacePreferred (parensTyp ?tb)))) -- then zero or many of the constituent union types, each preceeded by a required space.
 
 -- "CASE" signifies the start of a case statement.
 --

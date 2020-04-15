@@ -29,9 +29,26 @@ kind =  token $ alternatives $
   , betweenParens kind
   ]
 
+parensKind :: Grammar Kind
+parensKind = alternatives
+  [ simpleKind
+  , parensPreferred kind
+  ]
+
 simpleKind :: Grammar Kind
 simpleKind = textIs "KIND" */ rpure Kind
 
 arrowKind :: Grammar Kind
-arrowKind = arrow */ (kindArrowIso \$/ kind \*/ (spaceRequired */ kind))
+arrowKind = arrow */ spaceAllowed */ (kindArrowIso \$/ parensKind \*/ (spacePreferred */ parensKind))
+
+-- Forwards: Parenthesis are allowed but not required
+-- Backwards: Parenthesis are used
+parensPreferred
+  :: (Show a)
+  => Grammar a
+  -> Grammar a
+parensPreferred g = alternatives
+  [ try $ textIs "(" */ g \* textIs ")"
+  , g
+  ]
 

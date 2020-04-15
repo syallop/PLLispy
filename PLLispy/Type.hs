@@ -63,31 +63,31 @@ namedTyp = namedIso \$/ typeName
 sumTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
 sumTyp tb =
   plus */
-  (sumTIso \$/ (spaceRequired */ (sepBy1 spacePreferred $ parensTyp tb)))
+  (sumTIso \$/ (spaceAllowed */ (sepBy1 spacePreferred $ parensTyp tb)))
 
 -- A star followed by zero or more types
 productTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
 productTyp tb =
   star */
-  (productTIso \$/ rmany (spaceRequired */ parensTyp tb))
+  (productTIso \$/ (spaceAllowed */ sepBy spacePreferred (parensTyp tb)))
 
 -- A union followed by zero or more types
 unionTyp :: forall tb. (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
 unionTyp tb =
   union */
-  (unionTIso \$/ (setIso \$/ rmany (spaceRequired */ parensTyp tb)))
+  (unionTIso \$/ (setIso \$/ (spaceAllowed */ sepBy spacePreferred (parensTyp tb))))
 
 -- An arrow followed by two types
 arrowTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
 arrowTyp tb =
-  arrow */ (arrowIso \$/ (spacePreferred */ parensTyp tb)
-                     \*/ (spaceRequired */ parensTyp tb))
+  arrow */ (arrowIso \$/ (spaceAllowed */ parensTyp tb)
+                     \*/ (spacePreferred */ parensTyp tb))
 
 -- A big arrow followed by a Kind and a Type
 bigArrowTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
 bigArrowTyp tb =
-  bigArrow */ (bigArrowIso \$/ (spacePreferred */ (parensPreferred kind))
-                           \*/ (spaceRequired */ parensTyp tb))
+  bigArrow */ (bigArrowIso \$/ (spaceAllowed */ parensKind)
+                           \*/ (spacePreferred */ parensTyp tb))
   where
     -- TODO:
     -- - Better ascii symbol
@@ -99,14 +99,14 @@ bigArrowTyp tb =
 -- A type-lambda followed by an abstracted kind, then a type
 typeLamTyp :: forall tb. (Ord tb,Show tb) => Grammar tb -> Grammar (Type tb)
 typeLamTyp tb =
-  bigLambda */ (typeLamIso \$/ (spacePreferred */ (parensPreferred kindAbs))
-                           \*/ (spaceRequired */ parensTyp tb))
+  bigLambda */ (typeLamIso \$/ (spaceAllowed */ (parensPreferred kindAbs))
+                           \*/ (spacePreferred */ parensTyp tb))
 
 -- An type-app followed by two types
 typeAppTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
 typeAppTyp tb =
-  bigApp */ (typeAppIso \$/ (spacePreferred */ parensTyp tb)
-                        \*/ (spaceRequired */ parensTyp tb))
+  bigApp */ (typeAppIso \$/ (spaceAllowed */ parensTyp tb)
+                        \*/ (spacePreferred */ parensTyp tb))
   where
     bigApp = textIs "/@"
 
@@ -137,16 +137,5 @@ parensTyp tb = alternatives
   [ namedTyp
   , typeBindingTyp tb
   , parensPreferred (typ tb)
-  ]
-
--- Forwards: Parenthesis are allowed but not required
--- Backwards: Parenthesis are used
-parensPreferred
-  :: (Show a)
-  => Grammar a
-  -> Grammar a
-parensPreferred g = alternatives
-  [ try $ textIs "(" */ g \* textIs ")"
-  , g
   ]
 
