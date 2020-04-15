@@ -193,7 +193,10 @@ exprI = token $ alternatives
   ]
 
 parensExprI :: Constraints b abs tb => Grammar (Expr b abs tb)
-parensExprI = parensPreferred exprI
+parensExprI = alternatives
+  [ bindingExpr ?eb
+  , parensPreferred exprI
+  ]
 
 -- Parse an expression given parsers for:
 -- - Expression bindings    (E.G. Var)

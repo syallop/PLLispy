@@ -81,7 +81,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                                        ,_expr = FixExpr $ Binding $ VZ
                                                        }
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "\\ Foo (0)"
+        , _shouldPrint          = Just "\\ Foo 0"
         }
 
     describe "Application" $ do
@@ -97,7 +97,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                                        ,_x = FixExpr $ Binding $ VS $ VZ
                                                        }
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "@ (0) (1)"
+        , _shouldPrint          = Just "@ 0 1"
         }
 
     describe "Binding" $ do
