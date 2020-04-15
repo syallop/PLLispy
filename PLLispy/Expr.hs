@@ -39,17 +39,6 @@ import PL.Kind
 import PL.Type
 import PL.Var
 
--- | An 'Expr's lambda abstracts over some value which it accepts as it's argument.
--- This grammar is a simple type definition which may therefore be used in an
--- 'Expr b (Type tb) tb'.
-typeAbs
-  :: ( Show tb
-     , Ord tb
-     )
-  => Grammar tb
-  -> Grammar (Type tb)
-typeAbs tb = typ tb
-
 -- Implicitly bind Grammars for expression bindings, abstractions and type bindings
 -- TODO: This is probably a failed experiment.
 type Implicits b abs tb = (?eb :: Grammar b,?abs :: Grammar abs,?tb :: Grammar tb)
@@ -119,7 +108,7 @@ bigAppExpr
 bigAppExpr =
   bigAt */                                                      -- A token 'big at' character followed by
   (bigAppIso \$/ (spaceRequired */ parensPreferred exprI)       -- an expression
-             \*/ (spaceRequired */ parensPreferred (typ ?tb)))  -- then a type preceeded by a required space.
+             \*/ (spaceRequired */ parensTyp ?tb))  -- then a type preceeded by a required space.
 
 -- The binding constructor is some form of reference to a value bound by a
 -- lambda abstraction. It is likely to be an index or name.
@@ -141,10 +130,10 @@ sumExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 sumExpr =
-  plus */                                                                             -- A token '+' character followed by
-  (sumIso \$/ token natural                                                           -- an index into overall sum type
-          \*/ (spaceRequired */ parensPreferred exprI)                                -- then the expression preceeded by a required space
-          \*/ (spaceRequired */ (sepBy1 spacePreferred (parensPreferred $ typ ?tb)))) -- then one or many of the constituent sum types, each preceeded by a required space.
+  plus */                                                           -- A token '+' character followed by
+  (sumIso \$/ token natural                                         -- an index into overall sum type
+          \*/ (spaceRequired */ parensPreferred exprI)              -- then the expression preceeded by a required space
+          \*/ (spaceRequired */ (sepBy1 spacePreferred $ parensTyp ?tb))) -- then one or many of the constituent sum types, each preceeded by a required space.
 
 -- The 'Product' constructor is defined by:
 productExpr
@@ -159,10 +148,10 @@ unionExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 unionExpr =
-  union */                                                                       -- A token 'union' followed by
-  (unionIso \$/ (spaceRequired */ parensPreferred (typ ?tb))                     -- a type index into the overall union type
-            \*/ (spaceRequired */ parensPreferred exprI)                         -- then the expression preceeded by a required space
-            \*/ (setIso \$/ rmany (spaceRequired */ parensPreferred (typ ?tb)))) -- then zero or many of the constituent union types, each preceeded by a required space.
+  union */                                                     -- A token 'union' followed by
+  (unionIso \$/ (spaceRequired */ parensTyp ?tb)                     -- a type index into the overall union type
+            \*/ (spaceRequired */ parensPreferred exprI)       -- then the expression preceeded by a required space
+            \*/ (setIso \$/ rmany (spaceRequired */ parensTyp ?tb))) -- then zero or many of the constituent union types, each preceeded by a required space.
 
 -- "CASE" signifies the start of a case statement.
 --
