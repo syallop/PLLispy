@@ -135,6 +135,7 @@ typ tb = token $ alternatives
 parensTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
 parensTyp tb = alternatives
   [ namedTyp
+  , typeBindingTyp tb
   , parensPreferred (typ tb)
   ]
 

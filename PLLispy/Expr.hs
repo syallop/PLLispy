@@ -80,7 +80,7 @@ lamExpr
 lamExpr =
   lambda */                                             -- A token lambda character followed by
   (lamIso \$/ (spacePreferred */ ?abs)                  -- an abstraction
-          \*/ (spaceRequired */ parensPreferred exprI)) -- then an expression preceeded by a required space.
+          \*/ (spaceRequired */ parensExprI)) -- then an expression preceeded by a required space.
 
 -- The 'BigLam' big lambda constructor is defined by:
 -- A big lambda followed by one or more kind abstractions then an expression.
@@ -98,8 +98,8 @@ appExpr
   => Grammar (Expr b abs tb)
 appExpr =
   at */                                                 -- A token 'at' character followed by
-  (appIso \$/ (spaceRequired */ parensPreferred exprI)  -- an expression
-          \*/ (spaceRequired */ parensPreferred exprI)) -- then another expression preceeded by a required space.
+  (appIso \$/ (spaceRequired */ parensExprI)  -- an expression
+          \*/ (spaceRequired */ parensExprI)) -- then another expression preceeded by a required space.
 
 -- The 'BigApp' constructor is defined by:
 bigAppExpr
@@ -107,7 +107,7 @@ bigAppExpr
   => Grammar (Expr b abs tb)
 bigAppExpr =
   bigAt */                                                      -- A token 'big at' character followed by
-  (bigAppIso \$/ (spaceRequired */ parensPreferred exprI)       -- an expression
+  (bigAppIso \$/ (spaceRequired */ parensExprI)       -- an expression
              \*/ (spaceRequired */ parensTyp ?tb))  -- then a type preceeded by a required space.
 
 -- The binding constructor is some form of reference to a value bound by a
@@ -132,7 +132,7 @@ sumExpr
 sumExpr =
   plus */                                                           -- A token '+' character followed by
   (sumIso \$/ token natural                                         -- an index into overall sum type
-          \*/ (spaceRequired */ parensPreferred exprI)              -- then the expression preceeded by a required space
+          \*/ (spaceRequired */ parensExprI)              -- then the expression preceeded by a required space
           \*/ (spaceRequired */ (sepBy1 spacePreferred $ parensTyp ?tb))) -- then one or many of the constituent sum types, each preceeded by a required space.
 
 -- The 'Product' constructor is defined by:
@@ -141,7 +141,7 @@ productExpr
   => Grammar (Expr b abs tb)
 productExpr =
   star */                                                         -- A token 'star' followed by
-  (productIso \$/ rmany (spaceRequired */ parensPreferred exprI)) -- zero or many expressions, each preceeded by a required space.
+  (productIso \$/ rmany (spaceRequired */ parensExprI)) -- zero or many expressions, each preceeded by a required space.
 
 -- The 'Union' constructor is defined by:
 unionExpr
@@ -150,7 +150,7 @@ unionExpr
 unionExpr =
   union */                                                     -- A token 'union' followed by
   (unionIso \$/ (spaceRequired */ parensTyp ?tb)                     -- a type index into the overall union type
-            \*/ (spaceRequired */ parensPreferred exprI)       -- then the expression preceeded by a required space
+            \*/ (spaceRequired */ parensExprI)       -- then the expression preceeded by a required space
             \*/ (setIso \$/ rmany (spaceRequired */ parensTyp ?tb))) -- then zero or many of the constituent union types, each preceeded by a required space.
 
 -- "CASE" signifies the start of a case statement.
@@ -189,10 +189,11 @@ exprI = token $ alternatives
   , unionExpr
   , bindingExpr ?eb
   , caseAnalysis
-  , betweenParens exprI -- TODO: Drop this here?
-  -- TODO:
-  -- Big lambda type bindings?
+  , betweenParens exprI
   ]
+
+parensExprI :: Constraints b abs tb => Grammar (Expr b abs tb)
+parensExprI = parensPreferred exprI
 
 -- Parse an expression given parsers for:
 -- - Expression bindings    (E.G. Var)
