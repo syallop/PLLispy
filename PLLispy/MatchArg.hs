@@ -54,6 +54,17 @@ matchArg
     , betweenParens matchArg
     ]
 
+parensMatchArg
+  :: ( Show b
+     , Show tb
+     , Ord tb
+     , Eq b
+     , ?eb :: Grammar b
+     , ?tb :: Grammar tb
+     )
+  => Grammar (MatchArg b tb)
+parensMatchArg = parensPreferred matchArg
+
 -- A plus followed by an index and a matchArg
 -- E.G.: +0 ?
 matchSum
@@ -66,9 +77,9 @@ matchSum
      )
   => Grammar (MatchArg b tb)
 matchSum =
-  plus */                        -- A token plus character followed by
-  (matchSumIso \$/ token natural -- the index into the sum type
-               \*/ spaceRequired */ parensPreferred matchArg)     -- then the match for that type.
+  plus */                                      -- A token plus character followed by
+  (matchSumIso \$/ (spaceAllowed */ natural)   -- the index into the sum type
+               \*/ spacePreferred */ parensMatchArg) -- then the match for that type.
 
 -- A star followed by zero or more matchArgs
 matchProduct
@@ -81,8 +92,8 @@ matchProduct
      )
   => Grammar (MatchArg b tb)
 matchProduct =
-  star */                                                                 -- A token star character followed by
-  (matchProductIso \$/ rmany (spaceRequired */ parensPreferred matchArg)) -- a match for each component of the product
+  star */                                                                     -- A token star character followed by
+  (matchProductIso \$/ (spaceAllowed */ sepBy spacePreferred parensMatchArg)) -- a match for each component of the product
 
 -- A union followed by a type index and a matchArg
 matchUnion
@@ -95,9 +106,9 @@ matchUnion
      )
   => Grammar (MatchArg b tb)
 matchUnion =
-  union */                                                        -- A union character followed by
-  (matchUnionIso \$/ (spaceRequired */ parensPreferred (typ ?tb)) -- the type index into a union type
-                 \*/ (spaceRequired */ parensPreferred matchArg)) -- then the match for that type.
+  union */                                               -- A union character followed by
+  (matchUnionIso \$/ (spaceAllowed   */ parensTyp ?tb)   -- the type index into a union type
+                 \*/ (spacePreferred */ parensMatchArg)) -- then the match for that type.
 
 -- A var
 matchBinding
