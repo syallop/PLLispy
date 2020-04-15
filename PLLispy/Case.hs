@@ -29,6 +29,7 @@ import PLLispy.MatchArg
 import PLLispy.CaseIso
 import PLLispy.Kind
 import PLLispy.Type
+import PLLispy.Level
 
 import PL.Case
 import PL.Expr hiding (appise,lamise)
@@ -112,7 +113,7 @@ caseBranch
   => Grammar (Expr b abs tb)
   -> Grammar (CaseBranch (Expr b abs tb) (MatchArg b tb))
 caseBranch exprI =
-  (textIs "|") */                                                 -- A token bar character followed by
-  (caseBranchIso \$/ (spaceAllowed   */ parensPreferred matchArg) -- a matchArg to match the expression
-                 \*/ (spacePreferred */ exprI))                   -- and the resulting expression if the match succeeds.
+  (textIs "|") */                                        -- A token bar character followed by
+  (caseBranchIso \$/ (spaceAllowed   */ (sub matchArgI)) -- a matchArg to match the expression
+                 \*/ (spacePreferred */ exprI))          -- and the resulting expression if the match succeeds.
 

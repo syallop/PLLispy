@@ -25,6 +25,7 @@ library
                      , PLLispy.ExprIso
                      , PLLispy.Kind
                      , PLLispy.CaseIso
+                     , PLLispy.Level
 
                      , PLLispy.Test.Sources.Expr
                      , PLLispy.Test.Sources.MatchArg

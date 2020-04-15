@@ -30,6 +30,8 @@ import PLLispy.Case
 import PLLispy.Kind
 import PLLispy.Type
 
+import PLLispy.Level
+
 import PLLabel
 
 import PL.Case
@@ -78,9 +80,9 @@ lamExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 lamExpr =
-  lambda */                                   -- A token lambda character followed by
-  (lamIso \$/ (spaceAllowed */ ?abs)          -- an abstraction
-          \*/ (spaceRequired */ parensExprI)) -- then an expression preceeded by a required space.
+  lambda */                                 -- A token lambda character followed by
+  (lamIso \$/ (spaceAllowed */ ?abs)        -- an abstraction
+          \*/ (spaceRequired */ sub exprI)) -- then an expression preceeded by a required space.
 
 -- The 'BigLam' big lambda constructor is defined by:
 -- A big lambda followed by one or more kind abstractions then an expression.
@@ -88,27 +90,27 @@ bigLamExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 bigLamExpr =
-  bigLambda */                                  -- A token big lambda character followed by
-  (bigLamIso \$/ kind                           -- a kind
-             \*/ (spaceAllowed */ parensExprI)) -- then an expression preceeded by a required space.
+  bigLambda */                                -- A token big lambda character followed by
+  (bigLamIso \$/ kind                         -- a kind
+             \*/ (spaceAllowed */ sub exprI)) -- then an expression preceeded by a required space.
 
 -- The 'App' constructor is defined by:
 appExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 appExpr =
-  at */                                       -- A token 'at' character followed by
-  (appIso \$/ (spaceAllowed */ parensExprI)   -- an expression
-          \*/ (spaceRequired */ parensExprI)) -- then another expression preceeded by a required space.
+  at */                                     -- A token 'at' character followed by
+  (appIso \$/ (spaceAllowed  */ sub exprI)  -- an expression
+          \*/ (spaceRequired */ sub exprI)) -- then another expression preceeded by a required space.
 
 -- The 'BigApp' constructor is defined by:
 bigAppExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 bigAppExpr =
-  bigAt */                                         -- A token 'big at' character followed by
-  (bigAppIso \$/ (spaceAllowed */ parensExprI)     -- an expression
-             \*/ (spaceRequired */ parensTyp ?tb)) -- then a type preceeded by a required space.
+  bigAt */                                    -- A token 'big at' character followed by
+  (bigAppIso \$/ (spaceAllowed */ sub exprI)  -- an expression
+             \*/ (spaceRequired */ sub typI)) -- then a type preceeded by a required space.
 
 -- The binding constructor is some form of reference to a value bound by a
 -- lambda abstraction. It is likely to be an index or name.
@@ -130,10 +132,10 @@ sumExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 sumExpr =
-  plus */                                                                 -- A token '+' character followed by
-  (sumIso \$/ token natural                                               -- an index into overall sum type
-          \*/ (spaceAllowed */ parensExprI)                               -- then the expression preceeded by a required space
-          \*/ (spaceRequired */ (sepBy1 spacePreferred $ parensTyp ?tb))) -- then one or many of the constituent sum types, each preceeded by a required space.
+  plus */                                                            -- A token '+' character followed by
+  (sumIso \$/ token natural                                          -- an index into overall sum type
+          \*/ (spaceAllowed */ sub exprI)                            -- then the expression preceeded by a required space
+          \*/ (spaceRequired */ (sepBy1 spacePreferred $ sub typI))) -- then one or many of the constituent sum types, each preceeded by a required space.
 
 -- The 'Product' constructor is defined by:
 productExpr
@@ -141,17 +143,17 @@ productExpr
   => Grammar (Expr b abs tb)
 productExpr =
   star */                                                             -- A token 'star' followed by
-  (productIso \$/ (spaceAllowed */ sepBy spacePreferred parensExprI)) -- zero or many expressions, each preceeded by a required space.
+  (productIso \$/ (spaceAllowed */ sepBy spacePreferred (sub exprI))) -- zero or many expressions, each preceeded by a required space.
 
 -- The 'Union' constructor is defined by:
 unionExpr
   :: Constraints b abs tb
   => Grammar (Expr b abs tb)
 unionExpr =
-  union */                                                                             -- A token 'union' followed by
-  (unionIso \$/ (spaceAllowed   */ parensTyp ?tb)                                      -- a type index into the overall union type
-            \*/ (spacePreferred */ parensExprI)                                        -- then the expression preceeded by a required space
-            \*/ (setIso \$/ (spacePreferred */ sepBy spacePreferred (parensTyp ?tb)))) -- then zero or many of the constituent union types, each preceeded by a required space.
+  union */                                                                        -- A token 'union' followed by
+  (unionIso \$/ (spaceAllowed   */ sub typI)                                      -- a type index into the overall union type
+            \*/ (spacePreferred */ sub exprI)                                     -- then the expression preceeded by a required space
+            \*/ (setIso \$/ (spacePreferred */ sepBy spacePreferred (sub typI)))) -- then zero or many of the constituent union types, each preceeded by a required space.
 
 -- "CASE" signifies the start of a case statement.
 --
@@ -163,7 +165,7 @@ unionExpr =
 caseAnalysis :: (Show b,Show abs,Show tb,Ord tb,Implicits b abs tb,Eq b,Eq abs) => Grammar (Expr b abs tb)
 caseAnalysis =
   textIs "CASE" */
-  (caseIso \$/ (spaceRequired */ caseBody parensExprI))
+  (caseIso \$/ (spaceRequired */ caseBody (sub exprI)))
   where
     caseIso :: Iso (Case (Expr b abs tb) (MatchArg b tb)) (Expr b abs tb)
     caseIso = Iso
@@ -174,43 +176,50 @@ caseAnalysis =
          _ -> Nothing
       }
 
--- Parse an expression when /implicitly/ passed porsers for:
--- - ?eb  Expression bindings    (E.G. Var)
--- - ?abs Expression abstraction (E.G. Type)
--- - ?tb  Type bindings          (E.G. Var)
-exprI :: Constraints b abs tb => Grammar (Expr b abs tb)
-exprI = token $ alternatives
-  [ lamExpr
-  , bigLamExpr
-  , appExpr
-  , bigAppExpr
-  , sumExpr
-  , productExpr
-  , unionExpr
-  , bindingExpr ?eb
-  , caseAnalysis
-  , betweenParens exprI
-  ]
+exprI
+  :: forall b abs tb. Constraints b abs tb
+  => Level
+  -> Grammar (Expr b abs tb)
+exprI = level unambiguousExprI ambiguousExprI
+  where
+    unambiguousExprI :: [Grammar (Expr b abs tb)]
+    unambiguousExprI =
+      [ bindingExpr ?eb
+      ]
 
-parensExprI :: Constraints b abs tb => Grammar (Expr b abs tb)
-parensExprI = alternatives
-  [ bindingExpr ?eb
-  , parensPreferred exprI
-  ]
+    ambiguousExprI :: [Grammar (Expr b abs tb)]
+    ambiguousExprI =
+      [ lamExpr
+      , bigLamExpr
+      , appExpr
+      , bigAppExpr
+      , sumExpr
+      , productExpr
+      , unionExpr
+      , caseAnalysis
+      ]
 
--- Parse an expression given parsers for:
+
+-- Parse a top-level expression given parsers for:
 -- - Expression bindings    (E.G. Var)
 -- - Expression abstraction (E.G. Type)
 -- - Type bindings          (E.G. Var)
-expr
-  :: (Show b, Show abs, Show tb, Ord tb, Eq b, Eq abs)
+--
+-- Unlike sub-expressions, top-level expressions do not prefer to be surrounded
+-- by parenthesis
+--
+-- A sub-expression contained within some larger expression will prefer to be
+-- surrounded by parenthesis unless the specific sub-expression is unambigous
+-- (like a single integer).
+expr :: (Show b, Show abs, Show tb, Ord tb, Eq b, Eq abs)
   => Grammar b
   -> Grammar abs
   -> Grammar tb
+  -> Level
   -> Grammar (Expr b abs tb)
-expr eb abs tb
+expr eb abs tb n
   = let ?eb  = eb
         ?abs = abs
         ?tb  = tb
-       in exprI
+       in exprI n
 

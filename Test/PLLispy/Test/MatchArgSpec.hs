@@ -24,6 +24,7 @@ import PLLispy.Test.Sources.MatchArg
 import PLLispy.Expr
 import PLLispy.Type
 import PLLispy.MatchArg
+import PLLispy.Level
 
 import PLParser
 import PLPrinter
@@ -53,13 +54,13 @@ testKeyPrograms :: Spec
 testKeyPrograms = describe "Test whether we can parse key programs (which must then type check and reduce correctly)" $ parserSpec sources lispyParser ppType ppMatchArg
   where
     typeGrammar :: Grammar (Type TyVar)
-    typeGrammar = typ tyVar
+    typeGrammar = top $ typ tyVar
 
     ppType :: Type TyVar -> Doc
     ppType = fromMaybe mempty . pprint (toPrinter typeGrammar)
 
     matchArgGrammar :: Grammar TestMatchArg
-    matchArgGrammar = using var (typ tyVar) tyVar matchArg
+    matchArgGrammar = top $ matchArg var tyVar
 
     ppMatchArg :: TestMatchArg -> Doc
     ppMatchArg = fromMaybe mempty . pprint (toPrinter matchArgGrammar)
@@ -151,7 +152,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         }
   where
     matchArgGrammar :: Grammar TestMatchArg
-    matchArgGrammar = using var (typ tyVar) tyVar matchArg
+    matchArgGrammar = top $ matchArg var tyVar
 
 -- Test that some source code behaves correctly with parsing and printing
 testcase :: (Show a, Eq a) => TestCase a -> Spec

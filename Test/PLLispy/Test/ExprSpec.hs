@@ -25,6 +25,7 @@ import PLLispy
 import PLLispy.Expr
 import PLLispy.Type
 import PLLispy.Test.Sources.Expr
+import PLLispy.Level
 
 import PLGrammar
 import PLPrinter
@@ -54,13 +55,13 @@ testKeyPrograms :: Spec
 testKeyPrograms = describe "Test whether we can parse key programs (which must then type check and reduce correctly)" $ parserSpec sources lispyParser ppExpr ppType
   where
     typeGrammar :: Grammar (Type TyVar)
-    typeGrammar = typ tyVar
+    typeGrammar = top $ typ tyVar
 
     ppType :: Type TyVar -> Doc
     ppType = fromMaybe mempty . pprint (toPrinter typeGrammar)
 
     exprGrammar :: Grammar (Expr Var (Type TyVar) TyVar)
-    exprGrammar = expr var typeGrammar tyVar
+    exprGrammar = top (expr var typeGrammar tyVar)
 
     ppExpr :: Expr Var (Type TyVar) TyVar -> Doc
     ppExpr = fromMaybe mempty . pprint (toPrinter exprGrammar)
@@ -82,6 +83,18 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                                        }
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "\\Foo 0"
+        }
+
+      testcase $ TestCase
+        { _testCase             = "Complex type argument"
+        , _input                = ["\\(+Foo Bar) (0)"
+                                  ]
+        , _grammar              = exprGrammar
+        , _shouldParse          = Just $ FixExpr $ Lam {_take = FixType $ SumT $ NE.fromList [FixType $ Named $ "Foo", FixType $ Named $ "Bar"]
+                                                       ,_expr = FixExpr $ Binding $ VZ
+                                                       }
+        , _shouldParseLeftovers = ""
+        , _shouldPrint          = Just "\\(+Foo Bar) 0"
         }
 
     describe "Application" $ do
@@ -203,7 +216,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _grammar              = exprGrammar
         , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ CaseBranches (NE.fromList [CaseBranch Bind $ FixExpr $ Product []]) Nothing
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "CASE 0 (|(?) (*))"
+        , _shouldPrint          = Just "CASE 0 (|? (*))"
         }
 
       testcase $ TestCase
@@ -213,7 +226,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _grammar              = exprGrammar
         , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ CaseBranches (NE.fromList [CaseBranch Bind $ FixExpr $ Product []]) (Just $ FixExpr $ Product [])
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "CASE 0 (|(?) (*)) (*)"
+        , _shouldPrint          = Just "CASE 0 (|? (*)) (*)"
         }
 
       testcase $ TestCase
@@ -227,7 +240,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _grammar              = exprGrammar
         , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ CaseBranches (let b = CaseBranch Bind $ FixExpr $ Product [] in NE.fromList [b,b]) Nothing
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "CASE 0 (|(?) (*)) (|(?) (*))"
+        , _shouldPrint          = Just "CASE 0 (|? (*)) (|? (*))"
         }
 
       testcase $ TestCase
@@ -237,7 +250,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _grammar              = exprGrammar
         , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ CaseBranches (let b = CaseBranch Bind $ FixExpr $ Product [] in NE.fromList [b,b]) (Just $ FixExpr $ Product [])
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "CASE 0 (|(?) (*)) (|(?) (*)) (*)"
+        , _shouldPrint          = Just "CASE 0 (|? (*)) (|? (*)) (*)"
         }
 
       testcase $ TestCase
@@ -423,10 +436,10 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
 
   where
     exprGrammar :: Grammar (Expr Var (Type TyVar) TyVar)
-    exprGrammar = expr var typeGrammar tyVar
+    exprGrammar = top (expr var (sub $ typ tyVar) tyVar)
 
     typeGrammar :: Grammar (Type TyVar)
-    typeGrammar = typ tyVar
+    typeGrammar = top $ typ tyVar
 
 data TestCase a = TestCase
   { _testCase             :: Text

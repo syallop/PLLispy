@@ -14,6 +14,7 @@ import Control.Applicative
 import PL.Kind
 
 import PLLispy.KindIso
+import PLLispy.Level
 
 import PLGrammar
 import Reversible
@@ -40,15 +41,4 @@ simpleKind = textIs "KIND" */ rpure Kind
 
 arrowKind :: Grammar Kind
 arrowKind = arrow */ spaceAllowed */ (kindArrowIso \$/ parensKind \*/ (spacePreferred */ parensKind))
-
--- Forwards: Parenthesis are allowed but not required
--- Backwards: Parenthesis are used
-parensPreferred
-  :: (Show a)
-  => Grammar a
-  -> Grammar a
-parensPreferred g = alternatives
-  [ try $ textIs "(" */ g \* textIs ")"
-  , g
-  ]
 

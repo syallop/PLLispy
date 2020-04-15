@@ -22,6 +22,7 @@ import Reversible.Iso
 
 import PLLispy.TypeIso
 import PLLispy.Kind
+import PLLispy.Level
 
 import PL.Kind
 import PL.Name
@@ -60,34 +61,34 @@ namedTyp :: (Ord tb,Show tb) => Grammar (Type tb)
 namedTyp = namedIso \$/ typeName
 
 -- A plus followed by zero or more types
-sumTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-sumTyp tb =
+sumTyp :: (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
+sumTyp =
   plus */
-  (sumTIso \$/ (spaceAllowed */ (sepBy1 spacePreferred $ parensTyp tb)))
+  (sumTIso \$/ (spaceAllowed */ (sepBy1 spacePreferred $ sub typI)))
 
 -- A star followed by zero or more types
-productTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-productTyp tb =
+productTyp :: (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
+productTyp =
   star */
-  (productTIso \$/ (spaceAllowed */ sepBy spacePreferred (parensTyp tb)))
+  (productTIso \$/ (spaceAllowed */ sepBy spacePreferred (sub typI)))
 
 -- A union followed by zero or more types
-unionTyp :: forall tb. (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-unionTyp tb =
+unionTyp :: forall tb. (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
+unionTyp =
   union */
-  (unionTIso \$/ (setIso \$/ (spaceAllowed */ sepBy spacePreferred (parensTyp tb))))
+  (unionTIso \$/ (setIso \$/ (spaceAllowed */ sepBy spacePreferred (sub typI))))
 
 -- An arrow followed by two types
-arrowTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-arrowTyp tb =
-  arrow */ (arrowIso \$/ (spaceAllowed */ parensTyp tb)
-                     \*/ (spacePreferred */ parensTyp tb))
+arrowTyp :: (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
+arrowTyp =
+  arrow */ (arrowIso \$/ (spaceAllowed */ sub typI)
+                     \*/ (spacePreferred */ sub typI))
 
 -- A big arrow followed by a Kind and a Type
-bigArrowTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-bigArrowTyp tb =
+bigArrowTyp :: (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
+bigArrowTyp =
   bigArrow */ (bigArrowIso \$/ (spaceAllowed */ parensKind)
-                           \*/ (spacePreferred */ parensTyp tb))
+                           \*/ (spacePreferred */ sub typI))
   where
     -- TODO:
     -- - Better ascii symbol
@@ -97,16 +98,16 @@ bigArrowTyp tb =
     bigArrow = textIs "/->"
 
 -- A type-lambda followed by an abstracted kind, then a type
-typeLamTyp :: forall tb. (Ord tb,Show tb) => Grammar tb -> Grammar (Type tb)
-typeLamTyp tb =
+typeLamTyp :: forall tb. (Ord tb,Show tb,?tb :: Grammar tb) => Grammar (Type tb)
+typeLamTyp =
   bigLambda */ (typeLamIso \$/ (spaceAllowed */ (parensPreferred kindAbs))
-                           \*/ (spacePreferred */ parensTyp tb))
+                           \*/ (spacePreferred */ sub typI))
 
 -- An type-app followed by two types
-typeAppTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-typeAppTyp tb =
-  bigApp */ (typeAppIso \$/ (spaceAllowed */ parensTyp tb)
-                        \*/ (spacePreferred */ parensTyp tb))
+typeAppTyp :: (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
+typeAppTyp =
+  bigApp */ (typeAppIso \$/ (spaceAllowed */ sub typI)
+                        \*/ (spacePreferred */ sub typI))
   where
     bigApp = textIs "/@"
 
@@ -114,28 +115,31 @@ typeAppTyp tb =
 typeBindingTyp :: Show tb => Grammar tb -> Grammar (Type tb)
 typeBindingTyp gtb = typeBindingIso \$/ gtb
 
-typI :: (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
-typI = let tb = ?tb in typ tb
+typI
+  :: forall tb. (Show tb,Ord tb,?tb :: Grammar tb)
+  => Level
+  -> Grammar (Type tb)
+typI = level unambiguousTypI ambiguousTypI
+  where
+    unambiguousTypI :: [Grammar (Type tb)]
+    unambiguousTypI =
+      [ namedTyp
+      , typeBindingTyp ?tb
+      ]
 
--- A type is one of several variants, and may be nested in parenthesis
-typ :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-typ tb = token $ alternatives
-  [ typeLamTyp tb
-  , typeAppTyp tb
-  , arrowTyp tb
-  , sumTyp tb
-  , productTyp tb
-  , unionTyp tb
-  , namedTyp
-  , typeBindingTyp tb
-  , bigArrowTyp tb
-  , betweenParens $ typ tb
-  ]
+    ambiguousTypI :: [Grammar (Type tb)]
+    ambiguousTypI =
+      [ typeLamTyp
+      , typeAppTyp
+      , arrowTyp
+      , sumTyp
+      , productTyp
+      , unionTyp
+      , bigArrowTyp
+      ]
 
-parensTyp :: (Show tb,Ord tb) => Grammar tb -> Grammar (Type tb)
-parensTyp tb = alternatives
-  [ namedTyp
-  , typeBindingTyp tb
-  , parensPreferred (typ tb)
-  ]
-
+typ :: (Show tb, Ord tb)
+    => Grammar tb
+    -> Level
+    -> Grammar (Type tb)
+typ tb = let ?tb = tb in typI
