@@ -113,7 +113,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _grammar              = matchArgGrammar
         , _shouldParse          = Just $ MatchProduct [Bind]
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "*(?)"
+        , _shouldPrint          = Just "*?"
         }
 
       testcase $ TestCase
@@ -124,7 +124,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _grammar              = matchArgGrammar
         , _shouldParse          = Just $ MatchProduct [Bind,Bind]
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "*(?) (?)"
+        , _shouldPrint          = Just "*? ?"
         }
 
     describe "Sum" $ do
@@ -136,7 +136,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _grammar              = matchArgGrammar
         , _shouldParse          = Just $ MatchSum 0 Bind
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "+0 (?)"
+        , _shouldPrint          = Just "+0 ?"
         }
 
     describe "Union" $ do
@@ -147,7 +147,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _grammar              = matchArgGrammar
         , _shouldParse          = Just $ MatchUnion (FixType $ Named "Foo") $ Bind
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "∪Foo (?)"
+        , _shouldPrint          = Just "∪Foo ?"
         }
   where
     matchArgGrammar :: Grammar TestMatchArg

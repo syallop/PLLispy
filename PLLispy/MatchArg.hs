@@ -63,7 +63,11 @@ parensMatchArg
      , ?tb :: Grammar tb
      )
   => Grammar (MatchArg b tb)
-parensMatchArg = parensPreferred matchArg
+parensMatchArg = alternatives
+  [ bind
+  , matchBinding ?eb
+  , parensPreferred matchArg
+  ]
 
 -- A plus followed by an index and a matchArg
 -- E.G.: +0 ?
