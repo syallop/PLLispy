@@ -54,9 +54,9 @@ caseBody
   => Grammar (Expr b abs tb)
   -> Grammar (Case (Expr b abs tb) (MatchArg b tb))
 caseBody expr =
-  caseAnalysisIso \$/ (parensPreferred expr)                                                      -- The scrutinee expression
-                   \*/ (rmany (try (spaceRequired */ (parensPreferred $ caseBranch expr))))       -- Zero or many case branches. Try allows us to have 0 matches and unconsume spaces and parens that might be part of the default branch.
-                   \*/ (alternatives [ try $ justIso \$/ (spaceRequired */ parensPreferred expr)  -- An optional default branch. The entire expression is invalid if no branches or a default are supplied.
+  caseAnalysisIso \$/ expr                                                                        -- The scrutinee expression
+                   \*/ (rmany (try (spacePreferred */ (parensPreferred $ caseBranch expr))))       -- Zero or many case branches. Try allows us to have 0 matches and unconsume spaces and parens that might be part of the default branch.
+                   \*/ (alternatives [ try $ justIso \$/ (spacePreferred */ expr)  -- An optional default branch. The entire expression is invalid if no branches or a default are supplied.
                                      , rpure Nothing
                                      ])
   where
@@ -113,6 +113,6 @@ caseBranch
   -> Grammar (CaseBranch (Expr b abs tb) (MatchArg b tb))
 caseBranch exprI =
   (textIs "|") */                                                 -- A token bar character followed by
-  (caseBranchIso \$/ (spacePreferred */ parensPreferred matchArg) -- a matchArg to match the expression
-                 \*/ (spaceRequired */ parensPreferred exprI))    -- and the resulting expression if the match succeeds.
+  (caseBranchIso \$/ (spaceAllowed   */ parensPreferred matchArg) -- a matchArg to match the expression
+                 \*/ (spacePreferred */ exprI))                   -- and the resulting expression if the match succeeds.
 

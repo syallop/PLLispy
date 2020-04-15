@@ -163,7 +163,7 @@ unionExpr =
 caseAnalysis :: (Show b,Show abs,Show tb,Ord tb,Implicits b abs tb,Eq b,Eq abs) => Grammar (Expr b abs tb)
 caseAnalysis =
   textIs "CASE" */
-  (caseIso \$/ (spaceRequired */ caseBody exprI))
+  (caseIso \$/ (spaceRequired */ caseBody parensExprI))
   where
     caseIso :: Iso (Case (Expr b abs tb) (MatchArg b tb)) (Expr b abs tb)
     caseIso = Iso

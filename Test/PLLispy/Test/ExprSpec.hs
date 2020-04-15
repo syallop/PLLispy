@@ -193,7 +193,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _grammar              = exprGrammar
         , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ DefaultOnly $ FixExpr $ Product []
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "CASE (0) (*)"
+        , _shouldPrint          = Just "CASE 0 (*)"
         }
 
       testcase $ TestCase
@@ -203,22 +203,22 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _grammar              = exprGrammar
         , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ CaseBranches (NE.fromList [CaseBranch Bind $ FixExpr $ Product []]) Nothing
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "CASE (0) (| (?) (*))"
+        , _shouldPrint          = Just "CASE 0 (|(?) (*))"
         }
 
       testcase $ TestCase
         { _testCase             = "Single branch and default"
-        , _input                = ["CASE (0) (| (?) (*)) (*)"
+        , _input                = ["CASE (0) (|(?) (*)) (*)"
                                   ]
         , _grammar              = exprGrammar
         , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ CaseBranches (NE.fromList [CaseBranch Bind $ FixExpr $ Product []]) (Just $ FixExpr $ Product [])
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "CASE (0) (| (?) (*)) (*)"
+        , _shouldPrint          = Just "CASE 0 (|(?) (*)) (*)"
         }
 
       testcase $ TestCase
         { _testCase             = "Multiple branches no default"
-        , _input                = ["CASE (0) (| (?) (*)) (| (?) (*))"
+        , _input                = ["CASE (0) (| (?) (*)) (|(?) (*))"
                                   ,"(CASE (0)\n\
                                    \       (| (?) (*))\n\
                                    \       (| (?) (*))\n\
@@ -227,17 +227,17 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _grammar              = exprGrammar
         , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ CaseBranches (let b = CaseBranch Bind $ FixExpr $ Product [] in NE.fromList [b,b]) Nothing
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "CASE (0) (| (?) (*)) (| (?) (*))"
+        , _shouldPrint          = Just "CASE 0 (|(?) (*)) (|(?) (*))"
         }
 
       testcase $ TestCase
         { _testCase             = "Multiple branches and default"
-        , _input                = ["CASE (0) (| (?) (*)) (| (?) (*)) (*)"
+        , _input                = ["CASE (0) (|(?) (*)) (|(?) (*)) (*)"
                                   ]
         , _grammar              = exprGrammar
         , _shouldParse          = Just $ FixExpr $ CaseAnalysis $ Case (FixExpr $ Binding $ VZ) $ CaseBranches (let b = CaseBranch Bind $ FixExpr $ Product [] in NE.fromList [b,b]) (Just $ FixExpr $ Product [])
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "CASE (0) (| (?) (*)) (| (?) (*)) (*)"
+        , _shouldPrint          = Just "CASE 0 (|(?) (*)) (|(?) (*)) (*)"
         }
 
       testcase $ TestCase
