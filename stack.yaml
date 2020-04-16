@@ -4,8 +4,8 @@ extra-package-dbs: []
 packages:
 - '.'
 - location:
-    git: https://github.com/syallop/PL
-    commit: e0427ba9ddeb779b422951e2b62aa439baa03d01
+    git: https://github.com/syallop/PLCore
+    commit: 8cf2f2b91a3235458703fd55931925ddfa2852d1
   extra-dep: true
 - location:
     git: https://github.com/syallop/PLParser
@@ -13,7 +13,7 @@ packages:
   extra-dep: true
 - location:
     git: https://github.com/syallop/PLGrammar
-    commit: a402b40fca2aaabe66f040857465c3233344827f
+    commit: 8583dfc6b56b88069fee00b9786da6f15f6d4cd0
   extra-dep: true
 - location:
     git: https://github.com/syallop/Reversible
