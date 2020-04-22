@@ -15,107 +15,110 @@ import PL.FixExpr
 import PL.Kind
 import PL.Type
 import PL.Var
+import PL.TyVar
 
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.Set as Set
 
 {- Iso's that map between constructors and their contained values
  - These can/ should be mechanically created, perhaps with TH/ Generics.
+ -
+ - We _could_ make these more generic and use 'ExprFor' and the extension types.
  -}
-lamIso :: Iso (abs,Expr b abs tb) (Expr b abs tb)
+lamIso :: Iso (Type TyVar, Expr) Expr
 lamIso = Iso
   {_forwards = \(abs,body)
-                -> Just $ fixExpr $ Lam abs body
+                -> Just $ Lam abs body
   ,_backwards = \expr
-                -> case unfixExpr expr of
+                -> case expr of
                      Lam abs body
                        -> Just (abs,body)
                      _ -> Nothing
   }
 
-appIso :: Iso (Expr b abs tb,Expr b abs tb) (Expr b abs tb)
+appIso :: Iso (Expr,Expr) Expr
 appIso = Iso
   {_forwards = \(f,x)
-                -> Just $ fixExpr $ App f x
+                -> Just $ App f x
   ,_backwards = \expr
-                -> case unfixExpr expr of
+                -> case expr of
                      App f x
                        -> Just (f,x)
                      _ -> Nothing
   }
 
-bindingIso :: Iso b (Expr b abs tb)
+bindingIso :: Iso Var Expr
 bindingIso = Iso
   {_forwards = \b
-               -> Just . fixExpr . Binding $ b
+               -> Just . Binding $ b
   ,_backwards = \expr
-               -> case unfixExpr expr of
+               -> case expr of
                     Binding b
                       -> Just b
                     _ -> Nothing
   }
 
-caseAnalysisIso :: Iso (Case (Expr b abs tb) (MatchArg b tb)) (Expr b abs tb)
+caseAnalysisIso :: Iso (Case Expr (MatchArg Var TyVar)) Expr
 caseAnalysisIso = Iso
   {_forwards = \caseA
-               -> Just . fixExpr . CaseAnalysis $ caseA
+               -> Just . CaseAnalysis $ caseA
   ,_backwards = \expr
-               -> case unfixExpr expr of
+               -> case expr of
                     CaseAnalysis caseA
                       -> Just caseA
                     _ -> Nothing
   }
 
-sumIso :: Iso (Int, (Expr b abs tb, NonEmpty (Type tb))) (Expr b abs tb)
+sumIso :: Iso (Int, (Expr, NonEmpty (Type TyVar))) Expr
 sumIso = Iso
   {_forwards = \(sumIx, (expr, inTypes))
-               -> Just . fixExpr . Sum expr sumIx $ inTypes
+               -> Just . Sum expr sumIx $ inTypes
   ,_backwards = \expr
-               -> case unfixExpr expr of
+               -> case expr of
                     Sum expr sumIx inTypes
                       -> Just (sumIx, (expr, inTypes))
                     _ -> Nothing
   }
 
-productIso :: Iso [Expr b abs tb] (Expr b abs tb)
+productIso :: Iso [Expr] Expr
 productIso = Iso
   {_forwards = \exprs
-               -> Just . fixExpr . Product $ exprs
+               -> Just . Product $ exprs
   ,_backwards = \expr
-               -> case unfixExpr expr of
+               -> case expr of
                     Product exprs
                       -> Just exprs
                     _ -> Nothing
   }
 
-unionIso :: Iso (Type tb, (Expr b abs tb, Set.Set (Type tb))) (Expr b abs tb)
+unionIso :: Iso (Type TyVar, (Expr, Set.Set (Type TyVar))) Expr
 unionIso = Iso
   {_forwards = \(unionIx, (expr, inTypes))
-               -> Just . fixExpr . Union expr unionIx $ inTypes
+               -> Just . Union expr unionIx $ inTypes
   ,_backwards = \expr
-               -> case unfixExpr expr of
+               -> case expr of
                     Union expr unionIx inTypes
                       -> Just (unionIx, (expr, inTypes))
                     _ -> Nothing
   }
 
-bigLamIso :: Iso (Kind, Expr b abs tb) (Expr b abs tb)
+bigLamIso :: Iso (Kind, Expr) Expr
 bigLamIso = Iso
   {_forwards = \(absKind, bodyExpr)
-               -> Just . fixExpr . BigLam absKind $ bodyExpr
+               -> Just . BigLam absKind $ bodyExpr
   ,_backwards = \expr
-               -> case unfixExpr expr of
+               -> case expr of
                     BigLam absKind bodyExpr
                       -> Just (absKind, bodyExpr)
                     _ -> Nothing
   }
 
-bigAppIso :: Iso  (Expr b abs tb, Type tb) (Expr b abs tb)
+bigAppIso :: Iso  (Expr, Type TyVar) Expr
 bigAppIso = Iso
   {_forwards = \(f, xTy)
-               -> Just . fixExpr . BigApp f $ xTy
+               -> Just . BigApp f $ xTy
   ,_backwards = \expr
-               -> case unfixExpr expr of
+               -> case expr of
                     BigApp f xTy
                       -> Just (f, xTy)
                     _ -> Nothing

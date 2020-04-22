@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                PLLispy
-version:             0.2.0.0
+version:             0.3.0.0
 -- synopsis:            
 -- description:         
 -- license:             
@@ -36,7 +36,7 @@ library
                      , ImplicitParams
   build-depends:       base >= 4.12
 
-                     , PL         >= 0.1
+                     , PL         >= 0.2
                      , PLGrammar  >= 0.4
                      , PLLabel    >= 0.1
                      , PLParser   >= 0.1

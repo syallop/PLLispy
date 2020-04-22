@@ -40,17 +40,19 @@ import PL.FixExpr
 import PL.Kind
 import PL.Type
 import PL.Var
+import PL.TyVar
 
 -- Implicitly bind Grammars for expression bindings, abstractions and type bindings
 -- TODO: This is probably a failed experiment.
-type Implicits b abs tb = (?eb :: Grammar b,?abs :: Grammar abs,?tb :: Grammar tb)
+type Implicits = (?eb :: Grammar Var,?abs :: Grammar (Type TyVar),?tb :: Grammar TyVar)
 
 -- Bind the given grammars into a Grammar which takes them implicitly
 using
-  :: Grammar b
-  -> Grammar abs
-  -> Grammar tb
-  -> (Implicits b abs tb => Grammar a)
+  :: Implicits
+  => Grammar Var
+  -> Grammar (Type TyVar)
+  -> Grammar TyVar
+  -> Grammar a
   -> Grammar a
 using b abs tb a =
   let ?eb = b
@@ -59,26 +61,15 @@ using b abs tb a =
     in a
 
 implicitly
-  :: (Grammar b -> Grammar abs -> Grammar tb -> Grammar a)
-  -> (Implicits b abs tb => Grammar a)
+  :: Implicits
+  => (Grammar Var -> Grammar (Type TyVar) -> Grammar TyVar -> Grammar a)
+  -> Grammar a
 implicitly f = f ?eb ?abs ?tb
-
-type Constraints b abs tb =
-  ( Show b
-  , Show abs
-  , Show tb
-  , Ord tb
-  , Implicits b abs tb
-  , Eq b
-  , Eq abs
-  )
-
-type ExprGrammar b abs tb = Constraints b abs tb => Grammar (Expr b abs tb)
 
 -- The 'Lam' lambda constructor is defined by:
 lamExpr
-  :: Constraints b abs tb
-  => Grammar (Expr b abs tb)
+  :: Implicits
+  => Grammar Expr
 lamExpr =
   lambda */                                 -- A token lambda character followed by
   (lamIso \$/ (spaceAllowed */ ?abs)        -- an abstraction
@@ -87,8 +78,8 @@ lamExpr =
 -- The 'BigLam' big lambda constructor is defined by:
 -- A big lambda followed by one or more kind abstractions then an expression.
 bigLamExpr
-  :: Constraints b abs tb
-  => Grammar (Expr b abs tb)
+  :: Implicits
+  => Grammar Expr
 bigLamExpr =
   bigLambda */                                -- A token big lambda character followed by
   (bigLamIso \$/ kind                         -- a kind
@@ -96,8 +87,8 @@ bigLamExpr =
 
 -- The 'App' constructor is defined by:
 appExpr
-  :: Constraints b abs tb
-  => Grammar (Expr b abs tb)
+  :: Implicits
+  => Grammar Expr
 appExpr =
   at */                                     -- A token 'at' character followed by
   (appIso \$/ (spaceAllowed  */ sub exprI)  -- an expression
@@ -105,8 +96,8 @@ appExpr =
 
 -- The 'BigApp' constructor is defined by:
 bigAppExpr
-  :: Constraints b abs tb
-  => Grammar (Expr b abs tb)
+  :: Implicits
+  => Grammar Expr
 bigAppExpr =
   bigAt */                                    -- A token 'big at' character followed by
   (bigAppIso \$/ (spaceAllowed */ sub exprI)  -- an expression
@@ -115,9 +106,8 @@ bigAppExpr =
 -- The binding constructor is some form of reference to a value bound by a
 -- lambda abstraction. It is likely to be an index or name.
 bindingExpr
-  :: (Show b,Show tb,Show abs)
-  => Grammar b
-  -> Grammar (Expr b abs tb)
+  :: Grammar Var
+  -> Grammar Expr
 bindingExpr eb = bindingIso \$/ eb
 
 -- A 'Var' refers to a bound value by counting back to the lambda which
@@ -129,8 +119,8 @@ var =
 
 -- The 'Sum' constructor is defined by:
 sumExpr
-  :: Constraints b abs tb
-  => Grammar (Expr b abs tb)
+  :: Implicits
+  => Grammar Expr
 sumExpr =
   plus */                                                            -- A token '+' character followed by
   (sumIso \$/ token natural                                          -- an index into overall sum type
@@ -139,16 +129,16 @@ sumExpr =
 
 -- The 'Product' constructor is defined by:
 productExpr
-  :: Constraints b abs tb
-  => Grammar (Expr b abs tb)
+  :: Implicits
+  => Grammar Expr
 productExpr =
   star */                                                             -- A token 'star' followed by
   (productIso \$/ (spaceAllowed */ sepBy spacePreferred (sub exprI))) -- zero or many expressions, each preceeded by a required space.
 
 -- The 'Union' constructor is defined by:
 unionExpr
-  :: Constraints b abs tb
-  => Grammar (Expr b abs tb)
+  :: Implicits
+  => Grammar Expr
 unionExpr =
   union */                                                                        -- A token 'union' followed by
   (unionIso \$/ (spaceAllowed   */ sub typI)                                      -- a type index into the overall union type
@@ -162,32 +152,32 @@ unionExpr =
 -- - Either:
 --   - One or many branches and an optional default expression
 --   - A default expression
-caseAnalysis :: (Show b,Show abs,Show tb,Ord tb,Implicits b abs tb,Eq b,Eq abs) => Grammar (Expr b abs tb)
+caseAnalysis :: Implicits => Grammar Expr
 caseAnalysis =
   textIs "CASE" */
   (caseIso \$/ (spaceRequired */ caseBody (sub exprI)))
   where
-    caseIso :: Iso (Case (Expr b abs tb) (MatchArg b tb)) (Expr b abs tb)
+    caseIso :: Iso (Case Expr (MatchArg Var TyVar)) Expr
     caseIso = Iso
-      {_forwards  = Just . FixExpr . CaseAnalysis
+      {_forwards  = Just . CaseAnalysis
       ,_backwards = \e -> case e of
-         (FixExpr (CaseAnalysis c))
+         CaseAnalysis c
            -> Just c
          _ -> Nothing
       }
 
 exprI
-  :: forall b abs tb. Constraints b abs tb
+  :: Implicits
   => Level
-  -> Grammar (Expr b abs tb)
+  -> Grammar Expr
 exprI = level unambiguousExprI ambiguousExprI
   where
-    unambiguousExprI :: [Grammar (Expr b abs tb)]
+    unambiguousExprI :: [Grammar Expr]
     unambiguousExprI =
       [ bindingExpr ?eb
       ]
 
-    ambiguousExprI :: [Grammar (Expr b abs tb)]
+    ambiguousExprI :: [Grammar Expr]
     ambiguousExprI =
       [ lamExpr
       , bigLamExpr
@@ -211,12 +201,12 @@ exprI = level unambiguousExprI ambiguousExprI
 -- A sub-expression contained within some larger expression will prefer to be
 -- surrounded by parenthesis unless the specific sub-expression is unambigous
 -- (like a single integer).
-expr :: (Show b, Show abs, Show tb, Ord tb, Eq b, Eq abs)
-  => Grammar b
-  -> Grammar abs
-  -> Grammar tb
+expr
+  :: Grammar Var
+  -> Grammar (Type TyVar)
+  -> Grammar TyVar
   -> Level
-  -> Grammar (Expr b abs tb)
+  -> Grammar Expr
 expr eb abs tb n
   = let ?eb  = eb
         ?abs = abs

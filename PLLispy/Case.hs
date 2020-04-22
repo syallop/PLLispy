@@ -36,6 +36,7 @@ import PL.Expr hiding (appise,lamise)
 import PL.Kind
 import PL.Type
 import PL.Var
+import PL.TyVar
 
 -- A Case body is made up of:
 -- - A Scrutinee expression
@@ -43,17 +44,11 @@ import PL.Var
 --   - One or many branches and an optional default expression
 --   - A default expression
 caseBody
-  :: ( Show b
-     , Show abs
-     , Show tb
-     , Ord tb
-     , Eq b
-     , Eq abs
-     , ?eb :: Grammar b
-     , ?tb :: Grammar tb
+  :: ( ?eb :: Grammar Var
+     , ?tb :: Grammar TyVar
      )
-  => Grammar (Expr b abs tb)
-  -> Grammar (Case (Expr b abs tb) (MatchArg b tb))
+  => Grammar Expr
+  -> Grammar (Case Expr (MatchArg Var TyVar))
 caseBody expr =
   caseAnalysisIso \$/ expr                                                                        -- The scrutinee expression
                    \*/ (rmany (try (spacePreferred */ (parensPreferred $ caseBranch expr))))       -- Zero or many case branches. Try allows us to have 0 matches and unconsume spaces and parens that might be part of the default branch.
@@ -67,12 +62,12 @@ caseBody expr =
       ,_backwards = id
       }
 
-    caseAnalysisIso :: Iso (Expr b abs tb
-                           ,([CaseBranch (Expr b abs tb) (MatchArg b tb)]
-                            ,Maybe (Expr b abs tb)
+    caseAnalysisIso :: Iso (Expr
+                           ,([CaseBranch Expr (MatchArg Var TyVar)]
+                            ,Maybe Expr
                             )
                            )
-                           (Case (Expr b abs tb) (MatchArg b tb))
+                           (Case Expr (MatchArg Var TyVar))
     caseAnalysisIso = Iso
       {_forwards = \(scrutinee,(branches,mDefault)) -> case (branches,mDefault) of
          ([], Just d)
@@ -101,17 +96,11 @@ caseBody expr =
 -- E.G.
 -- | (?) (0)
 caseBranch
-  :: ( Show b
-     , Show abs
-     , Show tb
-     , Ord tb
-     , Eq b
-     , Eq abs
-     , ?eb :: Grammar b
-     , ?tb :: Grammar tb
+  :: ( ?eb :: Grammar Var
+     , ?tb :: Grammar TyVar
      )
-  => Grammar (Expr b abs tb)
-  -> Grammar (CaseBranch (Expr b abs tb) (MatchArg b tb))
+  => Grammar Expr
+  -> Grammar (CaseBranch Expr (MatchArg Var TyVar))
 caseBranch exprI =
   (textIs "|") */                                        -- A token bar character followed by
   (caseBranchIso \$/ (spaceAllowed   */ (sub matchArgI)) -- a matchArg to match the expression
