@@ -57,35 +57,35 @@ typeName :: Grammar TypeName
 typeName = typeNameIso \$/ name
 
 -- A named type is just a name which appears in the type position
-namedTyp :: (Ord tb,Show tb) => Grammar (Type tb)
+namedTyp :: Grammar Type
 namedTyp = namedIso \$/ typeName
 
 -- A plus followed by zero or more types
-sumTyp :: (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
+sumTyp :: (?tb :: Grammar TyVar) => Grammar Type
 sumTyp =
   plus */
   (sumTIso \$/ (spaceAllowed */ (sepBy1 spacePreferred $ sub typI)))
 
 -- A star followed by zero or more types
-productTyp :: (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
+productTyp :: (?tb :: Grammar TyVar) => Grammar Type
 productTyp =
   star */
   (productTIso \$/ (spaceAllowed */ sepBy spacePreferred (sub typI)))
 
 -- A union followed by zero or more types
-unionTyp :: forall tb. (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
+unionTyp :: (?tb :: Grammar TyVar) => Grammar Type
 unionTyp =
   union */
   (unionTIso \$/ (setIso \$/ (spaceAllowed */ sepBy spacePreferred (sub typI))))
 
 -- An arrow followed by two types
-arrowTyp :: (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
+arrowTyp :: (?tb :: Grammar TyVar) => Grammar Type
 arrowTyp =
   arrow */ (arrowIso \$/ (spaceAllowed */ sub typI)
                      \*/ (spacePreferred */ sub typI))
 
 -- A big arrow followed by a Kind and a Type
-bigArrowTyp :: (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
+bigArrowTyp :: (?tb :: Grammar TyVar) => Grammar Type
 bigArrowTyp =
   bigArrow */ (bigArrowIso \$/ (spaceAllowed */ parensKind)
                            \*/ (spacePreferred */ sub typI))
@@ -98,13 +98,13 @@ bigArrowTyp =
     bigArrow = textIs "/->"
 
 -- A type-lambda followed by an abstracted kind, then a type
-typeLamTyp :: forall tb. (Ord tb,Show tb,?tb :: Grammar tb) => Grammar (Type tb)
+typeLamTyp :: (?tb :: Grammar TyVar) => Grammar Type
 typeLamTyp =
   bigLambda */ (typeLamIso \$/ (spaceAllowed */ (parensPreferred kindAbs))
                            \*/ (spacePreferred */ sub typI))
 
 -- An type-app followed by two types
-typeAppTyp :: (Show tb,Ord tb,?tb :: Grammar tb) => Grammar (Type tb)
+typeAppTyp :: (?tb :: Grammar TyVar) => Grammar Type
 typeAppTyp =
   bigApp */ (typeAppIso \$/ (spaceAllowed */ sub typI)
                         \*/ (spacePreferred */ sub typI))
@@ -112,22 +112,22 @@ typeAppTyp =
     bigApp = textIs "/@"
 
 -- Given a parser for the type of binding used in types, parse a type binding
-typeBindingTyp :: Show tb => Grammar tb -> Grammar (Type tb)
+typeBindingTyp :: Grammar TyVar -> Grammar Type
 typeBindingTyp gtb = typeBindingIso \$/ gtb
 
 typI
-  :: forall tb. (Show tb,Ord tb,?tb :: Grammar tb)
+  :: (?tb :: Grammar TyVar)
   => Level
-  -> Grammar (Type tb)
+  -> Grammar Type
 typI = level unambiguousTypI ambiguousTypI
   where
-    unambiguousTypI :: [Grammar (Type tb)]
+    unambiguousTypI :: [Grammar Type]
     unambiguousTypI =
       [ namedTyp
       , typeBindingTyp ?tb
       ]
 
-    ambiguousTypI :: [Grammar (Type tb)]
+    ambiguousTypI :: [Grammar Type]
     ambiguousTypI =
       [ typeLamTyp
       , typeAppTyp
@@ -138,8 +138,7 @@ typI = level unambiguousTypI ambiguousTypI
       , bigArrowTyp
       ]
 
-typ :: (Show tb, Ord tb)
-    => Grammar tb
+typ :: Grammar TyVar
     -> Level
-    -> Grammar (Type tb)
+    -> Grammar Type
 typ tb = let ?tb = tb in typI

@@ -7,7 +7,6 @@ module PLLispy.Test.MatchArgSpec where
 import PL
 import PL.Var
 import PL.Type
-import PL.FixType
 import PL.Expr
 import PL.TyVar
 
@@ -53,10 +52,10 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms = describe "Test whether we can parse key programs (which must then type check and reduce correctly)" $ parserSpec sources lispyParser ppType ppMatchArg
   where
-    typeGrammar :: Grammar (Type TyVar)
+    typeGrammar :: Grammar Type
     typeGrammar = top $ typ tyVar
 
-    ppType :: Type TyVar -> Doc
+    ppType :: Type -> Doc
     ppType = fromMaybe mempty . pprint (toPrinter typeGrammar)
 
     matchArgGrammar :: Grammar TestMatchArg
@@ -146,7 +145,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = [ "U (Foo) (?)"
                                   ]
         , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchUnion (FixType $ Named "Foo") $ Bind
+        , _shouldParse          = Just $ MatchUnion (Named "Foo") $ Bind
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "∪Foo ?"
         }

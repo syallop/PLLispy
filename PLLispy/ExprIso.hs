@@ -11,7 +11,6 @@ import Data.Text
 
 import PL.Case
 import PL.Expr hiding (appise,lamise)
-import PL.FixExpr
 import PL.Kind
 import PL.Type
 import PL.Var
@@ -25,7 +24,7 @@ import qualified Data.Set as Set
  -
  - We _could_ make these more generic and use 'ExprFor' and the extension types.
  -}
-lamIso :: Iso (Type TyVar, Expr) Expr
+lamIso :: Iso (Type, Expr) Expr
 lamIso = Iso
   {_forwards = \(abs,body)
                 -> Just $ Lam abs body
@@ -58,7 +57,7 @@ bindingIso = Iso
                     _ -> Nothing
   }
 
-caseAnalysisIso :: Iso (Case Expr (MatchArg Var TyVar)) Expr
+caseAnalysisIso :: Iso (Case Expr MatchArg) Expr
 caseAnalysisIso = Iso
   {_forwards = \caseA
                -> Just . CaseAnalysis $ caseA
@@ -69,7 +68,7 @@ caseAnalysisIso = Iso
                     _ -> Nothing
   }
 
-sumIso :: Iso (Int, (Expr, NonEmpty (Type TyVar))) Expr
+sumIso :: Iso (Int, (Expr, NonEmpty Type)) Expr
 sumIso = Iso
   {_forwards = \(sumIx, (expr, inTypes))
                -> Just . Sum expr sumIx $ inTypes
@@ -91,7 +90,7 @@ productIso = Iso
                     _ -> Nothing
   }
 
-unionIso :: Iso (Type TyVar, (Expr, Set.Set (Type TyVar))) Expr
+unionIso :: Iso (Type, (Expr, Set.Set Type)) Expr
 unionIso = Iso
   {_forwards = \(unionIx, (expr, inTypes))
                -> Just . Union expr unionIx $ inTypes
@@ -113,7 +112,7 @@ bigLamIso = Iso
                     _ -> Nothing
   }
 
-bigAppIso :: Iso  (Expr, Type TyVar) Expr
+bigAppIso :: Iso  (Expr, Type) Expr
 bigAppIso = Iso
   {_forwards = \(f, xTy)
                -> Just . BigApp f $ xTy

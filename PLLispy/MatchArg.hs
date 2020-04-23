@@ -35,27 +35,23 @@ import PL.Expr hiding (appise,lamise)
 import PL.Kind
 import PL.Type
 import PL.Var
+import PL.TyVar
 
 matchArgI
-  :: forall b tb eb
-   . ( Show b
-     , Show tb
-     , Ord tb
-     , Eq b
-     , ?eb :: Grammar b
-     , ?tb :: Grammar tb
+  :: ( ?eb :: Grammar Var
+     , ?tb :: Grammar TyVar
      )
   => Level
-  -> Grammar (MatchArg b tb)
+  -> Grammar MatchArg
 matchArgI = level unambiguous ambiguous
   where
-    unambiguous :: [Grammar (MatchArg b tb)]
+    unambiguous :: [Grammar MatchArg]
     unambiguous =
       [ bind
       , matchBinding
       ]
 
-    ambiguous :: [Grammar (MatchArg b tb)]
+    ambiguous :: [Grammar MatchArg]
     ambiguous =
       [ matchSum
       , matchProduct
@@ -63,16 +59,10 @@ matchArgI = level unambiguous ambiguous
       ]
 
 matchArg
-  :: forall b tb
-   . ( Show b
-     , Show tb
-     , Ord tb
-     , Eq b
-     )
-  => Grammar b
-  -> Grammar tb
+  :: Grammar Var
+  -> Grammar TyVar
   -> Level
-  -> Grammar (MatchArg b tb)
+  -> Grammar MatchArg
 matchArg eb tb n =
   let ?eb = eb
       ?tb = tb
@@ -81,14 +71,10 @@ matchArg eb tb n =
 -- A plus followed by an index and a matchArg
 -- E.G.: +0 ?
 matchSum
-  :: ( Show b
-     , Show tb
-     , Ord tb
-     , Eq b
-     , ?eb :: Grammar b
-     , ?tb :: Grammar tb
+  :: ( ?eb :: Grammar Var
+     , ?tb :: Grammar TyVar
      )
-  => Grammar (MatchArg b tb)
+  => Grammar MatchArg
 matchSum =
   plus */                                           -- A token plus character followed by
   (matchSumIso \$/ (spaceAllowed */ natural)        -- the index into the sum type
@@ -96,28 +82,20 @@ matchSum =
 
 -- A star followed by zero or more matchArgs
 matchProduct
-  :: ( Show b
-     , Show tb
-     , Ord tb
-     , Eq b
-     , ?eb :: Grammar b
-     , ?tb :: Grammar tb
+  :: ( ?eb :: Grammar Var
+     , ?tb :: Grammar TyVar
      )
-  => Grammar (MatchArg b tb)
+  => Grammar MatchArg
 matchProduct =
   star */                                                                      -- A token star character followed by
   (matchProductIso \$/ (spaceAllowed */ sepBy spacePreferred (sub matchArgI))) -- a match for each component of the product
 
 -- A union followed by a type index and a matchArg
 matchUnion
-  :: ( Show b
-     , Show tb
-     , Ord tb
-     , Eq b
-     , ?eb :: Grammar b
-     , ?tb :: Grammar tb
+  :: ( ?eb :: Grammar Var
+     , ?tb :: Grammar TyVar
      )
-  => Grammar (MatchArg b tb)
+  => Grammar MatchArg
 matchUnion =
   union */                                              -- A union character followed by
   (matchUnionIso \$/ (spaceAllowed   */ sub typI)       -- the type index into a union type
@@ -125,22 +103,14 @@ matchUnion =
 
 -- A var
 matchBinding
-  :: ( Show b
-     , Show tb
-     , ?eb :: Grammar b
+  :: ( ?eb :: Grammar Var
      )
-  => Grammar (MatchArg b tb)
+  => Grammar MatchArg
 matchBinding =
   matchBindingIso \$/ ?eb -- Match the var binding by the provided grammar.
 
 -- A '?'
-bind
-  :: ( Show b
-     , Show tb
-     , Eq b
-     , Eq tb
-     )
-  => Grammar (MatchArg b tb)
+bind :: Grammar MatchArg
 bind =
   question */                 -- A question character indicates an expression is to be bound.
   (matchBindIso \$/ rpure ())

@@ -36,7 +36,6 @@ import PLLabel
 
 import PL.Case
 import PL.Expr hiding (appise,lamise)
-import PL.FixExpr
 import PL.Kind
 import PL.Type
 import PL.Var
@@ -44,13 +43,13 @@ import PL.TyVar
 
 -- Implicitly bind Grammars for expression bindings, abstractions and type bindings
 -- TODO: This is probably a failed experiment.
-type Implicits = (?eb :: Grammar Var,?abs :: Grammar (Type TyVar),?tb :: Grammar TyVar)
+type Implicits = (?eb :: Grammar Var,?abs :: Grammar Type,?tb :: Grammar TyVar)
 
 -- Bind the given grammars into a Grammar which takes them implicitly
 using
   :: Implicits
   => Grammar Var
-  -> Grammar (Type TyVar)
+  -> Grammar Type
   -> Grammar TyVar
   -> Grammar a
   -> Grammar a
@@ -62,7 +61,7 @@ using b abs tb a =
 
 implicitly
   :: Implicits
-  => (Grammar Var -> Grammar (Type TyVar) -> Grammar TyVar -> Grammar a)
+  => (Grammar Var -> Grammar Type -> Grammar TyVar -> Grammar a)
   -> Grammar a
 implicitly f = f ?eb ?abs ?tb
 
@@ -157,7 +156,7 @@ caseAnalysis =
   textIs "CASE" */
   (caseIso \$/ (spaceRequired */ caseBody (sub exprI)))
   where
-    caseIso :: Iso (Case Expr (MatchArg Var TyVar)) Expr
+    caseIso :: Iso (Case Expr MatchArg) Expr
     caseIso = Iso
       {_forwards  = Just . CaseAnalysis
       ,_backwards = \e -> case e of
@@ -203,7 +202,7 @@ exprI = level unambiguousExprI ambiguousExprI
 -- (like a single integer).
 expr
   :: Grammar Var
-  -> Grammar (Type TyVar)
+  -> Grammar Type
   -> Grammar TyVar
   -> Level
   -> Grammar Expr

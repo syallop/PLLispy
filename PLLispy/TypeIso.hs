@@ -13,7 +13,6 @@ import PL.Type
 import PL.TyVar
 import PL.Name
 import PL.Var
-import PL.FixType
 
 import qualified Data.Set as Set
 import qualified Data.Text as Text
@@ -49,101 +48,101 @@ typeNameIso = Iso
   ,_backwards = \(TypeName txt) -> Just txt
   }
 
-namedIso :: Iso TypeName (Type tb)
+namedIso :: Iso TypeName Type
 namedIso = Iso
   {_forwards = \typeName
-                -> Just . fixType . Named $ typeName
+                -> Just . Named $ typeName
   ,_backwards = \ty
-                -> case unfixType ty of
+                -> case ty of
                      Named typeName
                        -> Just typeName
                      _ -> Nothing
   }
 
-arrowIso :: Iso (Type tb, Type tb) (Type tb)
+arrowIso :: Iso (Type, Type) Type
 arrowIso = Iso
   {_forwards = \(fromTy, toTy)
-                -> Just .fixType . Arrow fromTy $ toTy
+                -> Just . Arrow fromTy $ toTy
   ,_backwards = \ty
-                -> case unfixType ty of
+                -> case ty of
                      Arrow fromTy toTy
                        -> Just (fromTy, toTy)
                      _ -> Nothing
   }
 
-sumTIso :: Iso (NonEmpty (Type tb)) (Type tb)
+sumTIso :: Iso (NonEmpty Type) Type
 sumTIso = Iso
   {_forwards = \tys
-                -> Just . fixType . SumT $ tys
+                -> Just . SumT $ tys
   ,_backwards = \ty
-                -> case unfixType ty of
+                -> case ty of
                      SumT tys
                        -> Just tys
                      _ -> Nothing
   }
 
-productTIso :: Iso [Type tb] (Type tb)
+productTIso :: Iso [Type] Type
 productTIso = Iso
   {_forwards = \tys
-                -> Just . fixType . ProductT $ tys
+                -> Just . ProductT $ tys
   ,_backwards = \ty
-                -> case unfixType ty of
+                -> case ty of
                      ProductT tys
                        -> Just tys
                      _ -> Nothing
   }
 
-unionTIso :: Iso (Set.Set (Type tb)) (Type tb)
+unionTIso :: Iso (Set.Set Type) Type
 unionTIso = Iso
   {_forwards = \tys
-                -> Just . fixType . UnionT $ tys
+                -> Just . UnionT $ tys
   ,_backwards = \ty
-                -> case unfixType ty of
+                -> case ty of
                      UnionT tys
                        -> Just tys
                      _ -> Nothing
   }
 
-bigArrowIso :: Iso (Kind, Type tb) (Type tb)
+bigArrowIso :: Iso (Kind, Type) Type
 bigArrowIso = Iso
   {_forwards = \(fromKind, toTy)
-                -> Just . fixType . BigArrow fromKind $ toTy
+                -> Just . BigArrow fromKind $ toTy
   ,_backwards = \ty
-                -> case unfixType ty of
+                -> case ty of
                     BigArrow fromKind toTy
                       -> Just (fromKind, toTy)
                     _ -> Nothing
   }
 
-typeLamIso :: Iso (Kind, Type tb) (Type tb)
+typeLamIso :: Iso (Kind, Type) Type
 typeLamIso = Iso
   {_forwards = \(fromKind, toTy)
-                -> Just . fixType . TypeLam fromKind $ toTy
+                -> Just . TypeLam fromKind $ toTy
   ,_backwards = \ty
-                -> case unfixType ty of
+                -> case ty of
                     TypeLam fromKind toTy
                       -> Just (fromKind, toTy)
                     _ -> Nothing
   }
 
 
-typeAppIso :: Iso (Type tb, Type tb) (Type tb)
+typeAppIso :: Iso (Type, Type) Type
 typeAppIso = Iso
   {_forwards = \(fTy, xTy)
-                -> Just . fixType . TypeApp fTy $ xTy
+                -> Just . TypeApp fTy $ xTy
   ,_backwards = \ty
-                -> case unfixType ty of
+                -> case ty of
                      TypeApp fTy xTy
                        -> Just (fTy, xTy)
                      _ -> Nothing
   }
 
-typeBindingIso :: Iso tb (Type tb)
+typeBindingIso :: Iso TyVar Type
 typeBindingIso = Iso
   {_forwards = \tb
-                -> Just . fixType . TypeBinding $ tb
+                -> Just . TypeBinding $ tb
   ,_backwards = \ty
-                -> case unfixType ty of
+                -> case ty of
                      TypeBinding tb
                        -> Just tb
                      _ -> Nothing

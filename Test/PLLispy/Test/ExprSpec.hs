@@ -4,13 +4,11 @@ module PLLispy.Test.ExprSpec where
 
 import PL
 import PL.Expr
-import PL.FixExpr
 import PL.Var
 import PL.TyVar
 import PL.Case
 import PL.Type
 import PL.Kind
-import PL.FixType
 import PL.Test.Expr
 import PL.Test.Expr.BigLam
 import PL.Test.Expr.Boolean
@@ -54,10 +52,10 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms = describe "Test whether we can parse key programs (which must then type check and reduce correctly)" $ parserSpec sources lispyParser ppExpr ppType
   where
-    typeGrammar :: Grammar (Type TyVar)
+    typeGrammar :: Grammar Type
     typeGrammar = top $ typ tyVar
 
-    ppType :: Type TyVar -> Doc
+    ppType :: Type -> Doc
     ppType = fromMaybe mempty . pprint (toPrinter typeGrammar)
 
     exprGrammar :: Grammar Expr
@@ -78,7 +76,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"\\Foo 0"   -- Dropping all uneccesary parens
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Lam (FixType $ Named $ "Foo") (Binding $ VZ)
+        , _shouldParse          = Just $ Lam (Named $ "Foo") (Binding $ VZ)
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "λFoo 0"
         }
@@ -88,7 +86,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["\\(+Foo Bar) (0)"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Lam (FixType $ SumT $ NE.fromList [FixType $ Named $ "Foo", FixType $ Named $ "Bar"]) (Binding $ VZ)
+        , _shouldParse          = Just $ Lam (SumT $ NE.fromList [Named $ "Foo", Named $ "Bar"]) (Binding $ VZ)
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "λ(+Foo Bar) 0"
         }
@@ -126,7 +124,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"+0 (*) *"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Sum (Product []) 0 $ NE.fromList $ [FixType $ ProductT []]
+        , _shouldParse          = Just $ Sum (Product []) 0 $ NE.fromList $ [ProductT []]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "+0(*) (*)"
         }
@@ -138,7 +136,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"+0 (* *) * *"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Sum (Product [Product []]) 0 $ NE.fromList $ [FixType $ ProductT [FixType $ ProductT []]]
+        , _shouldParse          = Just $ Sum (Product [Product []]) 0 $ NE.fromList $ [ProductT [ProductT []]]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "+0(*(*)) (*(*))"
         }
@@ -184,7 +182,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"(U (*) (*) (*))"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Union (Product []) (FixType $ ProductT []) (Set.fromList [FixType $ ProductT []])
+        , _shouldParse          = Just $ Union (Product []) (ProductT []) (Set.fromList [ProductT []])
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "∪(*) (*) (*)"
         }
@@ -265,7 +263,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["Name"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ Named "Name"
+        , _shouldParse          = Just $ Named "Name"
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "Name"
         }
@@ -278,7 +276,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"-> Foo Bar"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ Arrow (FixType $ Named "Foo") (FixType $ Named "Bar")
+        , _shouldParse          = Just $ Arrow (Named "Foo") (Named "Bar")
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "→Foo Bar"
         }
@@ -290,7 +288,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"+ Foo"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ SumT $ NE.fromList [FixType $ Named "Foo"]
+        , _shouldParse          = Just $ SumT $ NE.fromList [Named "Foo"]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "+Foo"
         }
@@ -301,7 +299,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"+ Foo Bar"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ SumT $ NE.fromList [FixType $ Named "Foo", FixType $ Named "Bar"]
+        , _shouldParse          = Just $ SumT $ NE.fromList [Named "Foo", Named "Bar"]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "+Foo Bar"
         }
@@ -312,7 +310,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["*"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ ProductT []
+        , _shouldParse          = Just $ ProductT []
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*"
         }
@@ -323,7 +321,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"* Foo"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ ProductT [FixType $ Named "Foo"]
+        , _shouldParse          = Just $ ProductT [Named "Foo"]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*Foo"
         }
@@ -334,7 +332,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"* Foo Bar"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ ProductT [FixType $ Named "Foo", FixType $ Named "Bar"]
+        , _shouldParse          = Just $ ProductT [Named "Foo", Named "Bar"]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*Foo Bar"
         }
@@ -348,7 +346,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"∪"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ UnionT $ Set.fromList []
+        , _shouldParse          = Just $ UnionT $ Set.fromList []
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "∪"
         }
@@ -359,7 +357,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"U Foo"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ UnionT $ Set.fromList [FixType $ Named "Foo"]
+        , _shouldParse          = Just $ UnionT $ Set.fromList [Named "Foo"]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "∪Foo"
         }
@@ -371,7 +369,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"U Foo Bar"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ UnionT $ Set.fromList [FixType $ Named "Foo", FixType $ Named "Bar"]
+        , _shouldParse          = Just $ UnionT $ Set.fromList [Named "Foo", Named "Bar"]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "∪Bar Foo"
         }
@@ -383,7 +381,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"/-> KIND Foo"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ BigArrow Kind (FixType $ Named "Foo")
+        , _shouldParse          = Just $ BigArrow Kind (Named "Foo")
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "/->KIND Foo"
         }
@@ -395,7 +393,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"/\\ KIND Foo"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ TypeLam Kind (FixType $ Named "Foo")
+        , _shouldParse          = Just $ TypeLam Kind (Named "Foo")
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "Λ(KIND) Foo"
         }
@@ -409,9 +407,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"/@ Foo (Bar)"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ TypeApp {_f = FixType $ Named "Foo"
-                                                           ,_x = FixType $ Named "Bar"
-                                                           }
+        , _shouldParse          = Just $ TypeApp (Named "Foo") (Named "Bar")
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "/@Foo Bar"
         }
@@ -423,7 +419,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"(?0)"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ FixType $ TypeBinding $ TyVar $ VZ
+        , _shouldParse          = Just $ TypeBinding $ TyVar $ VZ
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "?0"
         }
@@ -432,7 +428,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
     exprGrammar :: Grammar Expr
     exprGrammar = top (expr var (sub $ typ tyVar) tyVar)
 
-    typeGrammar :: Grammar (Type TyVar)
+    typeGrammar :: Grammar Type
     typeGrammar = top $ typ tyVar
 
 data TestCase a = TestCase

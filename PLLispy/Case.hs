@@ -48,7 +48,7 @@ caseBody
      , ?tb :: Grammar TyVar
      )
   => Grammar Expr
-  -> Grammar (Case Expr (MatchArg Var TyVar))
+  -> Grammar (Case Expr MatchArg)
 caseBody expr =
   caseAnalysisIso \$/ expr                                                                        -- The scrutinee expression
                    \*/ (rmany (try (spacePreferred */ (parensPreferred $ caseBranch expr))))       -- Zero or many case branches. Try allows us to have 0 matches and unconsume spaces and parens that might be part of the default branch.
@@ -63,11 +63,11 @@ caseBody expr =
       }
 
     caseAnalysisIso :: Iso (Expr
-                           ,([CaseBranch Expr (MatchArg Var TyVar)]
+                           ,([CaseBranch Expr MatchArg]
                             ,Maybe Expr
                             )
                            )
-                           (Case Expr (MatchArg Var TyVar))
+                           (Case Expr MatchArg)
     caseAnalysisIso = Iso
       {_forwards = \(scrutinee,(branches,mDefault)) -> case (branches,mDefault) of
          ([], Just d)
@@ -100,7 +100,7 @@ caseBranch
      , ?tb :: Grammar TyVar
      )
   => Grammar Expr
-  -> Grammar (CaseBranch Expr (MatchArg Var TyVar))
+  -> Grammar (CaseBranch Expr MatchArg)
 caseBranch exprI =
   (textIs "|") */                                        -- A token bar character followed by
   (caseBranchIso \$/ (spaceAllowed   */ (sub matchArgI)) -- a matchArg to match the expression
