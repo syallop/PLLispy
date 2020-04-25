@@ -2,7 +2,7 @@
     OverloadedStrings
   , FlexibleInstances
   #-}
-module PLLispy.Test.MatchArgSpec where
+module PLLispy.Test.TypeSpec where
 
 import PL
 import PL.Var
@@ -11,22 +11,16 @@ import PL.Expr
 import PL.TyVar
 import PL.Error
 
-import PL.Test.Parsing.MatchArg
-import PL.Test.MatchArg
-import PL.Test.MatchArg
-import PL.Test.MatchArgTestCase
-import PL.Test.MatchArg.Bind
-import PL.Test.MatchArg.Sum
-import PL.Test.MatchArg.Product
-import PL.Test.MatchArg.Union
-import PL.Test.MatchArg.Binding
+import PL.Test.Parsing.Type
+import PL.Test.Type
+import PL.Test.TypeTestCase
 import PL.Test.Source
 
 import PLLispy
-import PLLispy.Test.Sources.MatchArg
+import PLLispy.Test.Sources.Type
 import PLLispy.Expr
 import PLLispy.Type
-import PLLispy.MatchArg
+import PLLispy.Type
 import PLLispy.Level
 
 import PLParser
@@ -40,13 +34,12 @@ import Data.Maybe
 import qualified Data.List as List
 import qualified Data.Text as Text
 import qualified Data.Map as Map
+import qualified Data.Text as Text
 
 import Control.Monad
 
 import Test.Hspec
 
--- Test Case analysis matchargs parse, reduce and type check from example
--- sources
 spec
   :: Spec
 spec = do
@@ -56,25 +49,19 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms =
   describe "There must be some input that parses all key programs" $
-    parsesToMatchArgsSpec matchArgTestCases lispyParser ppMatchArg (ppError ppType)
+    parsesToTypesSpec typeTestCases lispyParser ppType (ppError ppType)
   where
-    matchArgTestCases :: Map.Map Text.Text MatchArgTestCase
-    matchArgTestCases = mkMatchArgTestCases sources
-
-    typeGrammar :: Grammar Type
-    typeGrammar = top $ typ tyVar
+    typeTestCases :: Map.Map Text.Text TypeTestCase
+    typeTestCases = mkTypeTestCases sources
 
     ppType :: Type -> Doc
     ppType = fromMaybe mempty . pprint (toPrinter typeGrammar)
 
-    matchArgGrammar :: Grammar TestMatchArg
-    matchArgGrammar = top $ matchArg var tyVar
+    typeGrammar :: Grammar Type
+    typeGrammar = top $ typ tyVar
 
-    ppMatchArg :: TestMatchArg -> Doc
-    ppMatchArg = fromMaybe mempty . pprint (toPrinter matchArgGrammar)
-
-    lispyParser :: Text.Text -> Either (Error DefaultPhase) (MatchArgFor DefaultPhase, Source)
-    lispyParser input = let p = toParser matchArgGrammar
+    lispyParser :: Text.Text -> Either (Error DefaultPhase) (TypeFor DefaultPhase, Source)
+    lispyParser input = let p = toParser typeGrammar
                          in case runParser p input of
                               ParseFailure _failures cursor
                                 -- TODO: Format failure into error message
@@ -85,90 +72,11 @@ testKeyPrograms =
 
 testParsePrint :: Spec
 testParsePrint = describe "Lispy specific parse-print behaves" $ do
-  describe "Match args" $ do
-    describe "Bind" $ do
-      testcase $ TestCase
-        { _testCase             = "Bind anything"
-        , _input                = [ "?"
-                                  , "(?)"
-                                  ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just Bind
-        , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "?"
-        }
-
-    describe "Binding" $ do
-      testcase $ TestCase
-        { _testCase             = "Match a binding"
-        , _input                = [ "0"
-                                  , "(0)"
-                                  ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchBinding $ VZ
-        , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "0"
-        }
-
-    describe "Product" $ do
-      testcase $ TestCase
-        { _testCase             = "Match empty product"
-        , _input                = ["*"
-                                  ,"(*)"
-                                  ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchProduct []
-        , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "*"
-        }
-
-      testcase $ TestCase
-        { _testCase             = "Match singleton product"
-        , _input                = ["* (?)"
-                                  ,"(* (?))"
-                                  ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchProduct [Bind]
-        , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "*?"
-        }
-
-      testcase $ TestCase
-        { _testCase             = "Match two product"
-        , _input                = ["* (?) (?)"
-                                  ,"(* (?) (?))"
-                                  ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchProduct [Bind,Bind]
-        , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "*? ?"
-        }
-
-    describe "Sum" $ do
-      testcase $ TestCase
-        { _testCase             = "Bind a singleton sum"
-        , _input                = [ "+0 (?)"
-                                  , "(+0 (?))"
-                                  ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchSum 0 Bind
-        , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "+0 ?"
-        }
-
-    describe "Union" $ do
-      testcase $ TestCase
-        { _testCase             = "Bind a singleton union"
-        , _input                = [ "U (Foo) (?)"
-                                  ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchUnion (Named "Foo") $ Bind
-        , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "∪Foo ?"
-        }
+  describe "Types" $ do
+    it "Any tests" pending
   where
-    matchArgGrammar :: Grammar TestMatchArg
-    matchArgGrammar = top $ matchArg var tyVar
+    typeGrammar :: Grammar Type
+    typeGrammar = top $ typ tyVar
 
 -- Test that some source code behaves correctly with parsing and printing
 testcase :: (Show a, Eq a) => TestCase a -> Spec

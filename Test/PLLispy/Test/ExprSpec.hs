@@ -3,12 +3,16 @@
 module PLLispy.Test.ExprSpec where
 
 import PL
-import PL.Expr
-import PL.Var
-import PL.TyVar
 import PL.Case
-import PL.Type
+import PL.Error
+import PL.Expr
 import PL.Kind
+import PL.TyVar
+import PL.Type
+import PL.Var
+
+import PL.Test.ExprTestCase
+import PL.Test.Parsing.Expr
 import PL.Test.Expr
 import PL.Test.Expr.BigLam
 import PL.Test.Expr.Boolean
@@ -18,6 +22,7 @@ import PL.Test.Expr.Natural
 import PL.Test.Expr.Product
 import PL.Test.Expr.Sum
 import PL.Test.Expr.Union
+import PL.Test.Source
 
 import PLLispy
 import PLLispy.Expr
@@ -50,8 +55,13 @@ spec = do
   testParsePrint
 
 testKeyPrograms :: Spec
-testKeyPrograms = describe "Test whether we can parse key programs (which must then type check and reduce correctly)" $ parserSpec sources lispyParser ppExpr ppType
+testKeyPrograms =
+  describe "There must be some input that parses all key programs" $
+    parsesToSpec exprTestCases lispyParser ppExpr (ppError ppType)
   where
+    exprTestCases :: Map.Map Text.Text ExprTestCase
+    exprTestCases = mkTestCases sources
+
     typeGrammar :: Grammar Type
     typeGrammar = top $ typ tyVar
 
@@ -64,7 +74,46 @@ testKeyPrograms = describe "Test whether we can parse key programs (which must t
     ppExpr :: Expr -> Doc
     ppExpr = fromMaybe mempty . pprint (toPrinter exprGrammar)
 
-    lispyParser = toParser exprGrammar
+    lispyParser :: Text.Text -> Either (Error DefaultPhase) (ExprFor DefaultPhase, Source)
+    lispyParser input = let p = toParser exprGrammar
+                         in case runParser p input of
+                              ParseSuccess a cursor
+                                -> Right (a,remainder cursor)
+                              failure
+                                -> Left . EMsg . ppParseResult ppExpr $ failure
+    ppParseResult
+      :: (a -> Doc)
+      -> PLParser.ParseResult a
+      -> Doc
+    ppParseResult ppA p = case p of
+        PLParser.ParseSuccess a leftovers
+          -> text "Parsed: " <> ppA a <> text "with leftovers" <> document leftovers
+
+        PLParser.ParseFailure failures cur0
+          -> mconcat $
+               [ text "Parse failure at:"
+               , lineBreak
+
+               , indent1 $ document cur0
+               , lineBreak
+               ]
+               ++
+               if List.null failures
+                 then mempty
+                 else [ text "The failures backtracked from were:"
+                      , lineBreak
+                      , indent1 . mconcat
+                                . fmap (\(cursor,expected) -> mconcat [ document cursor
+                                                                      , document expected
+                                                                      , lineBreak
+                                                                      , lineBreak
+                                                                      ]
+                                      )
+                                . Map.toList
+                                . PLParser.collectFailures
+                                $ failures
+                      ]
+
 
 testParsePrint :: Spec
 testParsePrint = describe "Lispy specific parse-print behaves" $ do

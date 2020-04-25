@@ -28,6 +28,7 @@ library
                      , PLLispy.Level
 
                      , PLLispy.Test.Sources.Expr
+                     , PLLispy.Test.Sources.Type
                      , PLLispy.Test.Sources.MatchArg
   -- other-modules:       
   other-extensions:    MultiWayIf
@@ -57,6 +58,7 @@ test-suite hspec
 
   other-modules:     PLLispy.Test.ExprSpec
                    , PLLispy.Test.MatchArgSpec
+                   , PLLispy.Test.TypeSpec
 
   build-depends:     base >=4.7
                    , containers >= 0.5

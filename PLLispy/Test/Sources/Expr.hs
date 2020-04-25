@@ -47,61 +47,53 @@ sources = TestExprSources
       }
 
   , _booleanTestCases = TestBooleanSources
-      { _andTestCase = Text.unlines
-          ["λBool λBool (CASE 0"
-          ,"              (| (+0 (*)) (+0 (*) (*) (*)))"
-
-          ,"              (CASE 1"
-          ,"               (| (+0 (*)) (+0 (*) (*) (*)))"
-          ,"               (+1 (*) (*) (*))"
-          ,"              )"
-          ,"            )"
-          ]
+      { _andTestCase =
+          "λBool λBool (CASE 0\n\
+          \              (| (+0 (*)) (+0 (*) (*) (*)))\n\
+          \              (CASE 1\n\
+          \               (| (+0 (*)) (+0 (*) (*) (*)))\n\
+          \               (+1 (*) (*) (*))\n\
+          \              )\n\
+          \            )"
       }
 
   , _naturalTestCases = TestNaturalSources
-      { _subTwoTestCase = Text.unlines
-          ["λNat (CASE 0"
-          ,"       (| (+1 (+1 ?)) (0))" -- Match successor
-          ,"       (+0 (*) (*) Nat)"     -- Default branch: zero
-          ,"     )"
-          ]
+      { _subTwoTestCase =
+          "λNat (CASE 0\n\
+          \       (| (+1 (+1 ?)) (0))\n\
+          \       (+0 (*) (*) Nat)\n\
+          \     )"
       }
 
   , _sumTestCases = TestSumSources
-      { _sumThreeTestCase = Text.unlines
-          ["λ(+ Nat Bool Nat) (CASE 0"
-          ,"                     (| (+0 (+1 ?)) (0))"
-          ,"                     (| (+0 (+0 *)) (+0 (*) (*) Nat))"
-          ,"                     (| (+1 (+0 *)) (+0 (*) (*) Nat))"
-          ,"                     (| (+1 (+1 *)) (@ (λNat (+1 (0) (*) Nat)) (+0 (*) (*) Nat)))"
-          ,"                     (| (+2 (+1 ?)) (+0 (*) (*) Nat))"
-          ,"                     (| (+2 (+0 *)) (@ (λNat (+1 (0) (*) Nat)) (+0 (*) (*) Nat)))"
-          ,"                    )"
-          ]
+      { _sumThreeTestCase =
+          "λ(+ Nat Bool Nat) (CASE 0\n\
+          \                     (| (+0 (+1 ?)) (0))\n\
+          \                     (| (+0 (+0 *)) (+0 (*) (*) Nat))\n\
+          \                     (| (+1 (+0 *)) (+0 (*) (*) Nat))\n\
+          \                     (| (+1 (+1 *)) (@ (λNat (+1 (0) (*) Nat)) (+0 (*) (*) Nat)))\n\
+          \                     (| (+2 (+1 ?)) (+0 (*) (*) Nat))\n\
+          \                     (| (+2 (+0 *)) (@ (λNat (+1 (0) (*) Nat)) (+0 (*) (*) Nat)))\n\
+          \                    )"
       }
 
   , _productTestCases = TestProductSources
-      { _productThreeTestCase = Text.unlines
-          ["λ(* Nat Bool Nat) (CASE 0"
-          ,"                    (| (* (+0 (*)) (?) (+0 (*))) (0))"
-          ,"                    (| (* (?)      (?) (+0 (*))) (0))"
-          ,""
-          ,"                    (+0 (*) (*) (*))"
-          ,"                  )"
-          ]
+      { _productThreeTestCase =
+          "λ(* Nat Bool Nat) (CASE 0\n\
+          \                    (| (* (+0 (*)) (?) (+0 (*))) (0))\n\
+          \                    (| (* (?)      (?) (+0 (*))) (0))\n\
+          \                    (+0 (*) (*) (*))\n\
+          \                  )"
       }
 
   , _unionTestCases = TestUnionSources
-      { _unionTwoTestCase = Text.unlines
-          ["λ(∪ Bool Nat) (CASE 0"
-          ,"                (| (∪ Nat  (+0 (*))) (+0 (*) (*) (*)))"
-          ,"                (| (∪ Nat  (+1 ?))   (+1 (*) (*) (*)))"
-          ,"                (| (∪ Bool (+1 (*))) (+1 (*) (*) (*)))"
-          ,""
-          ,"                (+ 0 (*) (*) (*))"
-          ,"              )"
-          ]
+      { _unionTwoTestCase =
+          "λ(∪ Bool Nat) (CASE 0\n\
+          \                (| (∪ Nat  (+0 (*))) (+0 (*) (*) (*)))\n\
+          \                (| (∪ Nat  (+1 ?))   (+1 (*) (*) (*)))\n\
+          \                (| (∪ Bool (+1 (*))) (+1 (*) (*) (*)))\n\
+          \                (+ 0 (*) (*) (*))\n\
+          \              )"
       }
 
   , _functionTestCases = TestFunctionSources
