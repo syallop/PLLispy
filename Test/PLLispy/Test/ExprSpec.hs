@@ -1,9 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE RankNTypes #-}
 module PLLispy.Test.ExprSpec where
 
 import PL
 import PL.Case
+import PL.Commented
 import PL.Error
 import PL.Expr
 import PL.Kind
@@ -62,25 +64,26 @@ testKeyPrograms =
     exprTestCases :: Map.Map Text.Text ExprTestCase
     exprTestCases = mkTestCases sources
 
-    typeGrammar :: Grammar Type
+    typeGrammar :: Grammar CommentedType
     typeGrammar = top $ typ tyVar
 
-    ppType :: Type -> Doc
-    ppType = fromMaybe mempty . pprint (toPrinter typeGrammar)
+    ppType :: TypeFor DefaultPhase -> Doc
+    ppType = fromMaybe mempty . pprint (toPrinter typeGrammar) . addTypeComments
 
-    exprGrammar :: Grammar Expr
+    exprGrammar :: Grammar CommentedExpr
     exprGrammar = top (expr var typeGrammar tyVar)
 
-    ppExpr :: Expr -> Doc
-    ppExpr = fromMaybe mempty . pprint (toPrinter exprGrammar)
+    ppExpr :: ExprFor DefaultPhase -> Doc
+    ppExpr = fromMaybe mempty . pprint (toPrinter exprGrammar) . addComments
 
-    lispyParser :: Text.Text -> Either (Error DefaultPhase) (ExprFor DefaultPhase, Source)
+    lispyParser :: Text.Text -> Either (Error DefaultPhase) (ExprFor CommentedPhase, Source)
     lispyParser input = let p = toParser exprGrammar
                          in case runParser p input of
                               ParseSuccess a cursor
                                 -> Right (a,remainder cursor)
+
                               failure
-                                -> Left . EMsg . ppParseResult ppExpr $ failure
+                                -> Left . EMsg . ppParseResult (fromMaybe mempty . pprint (toPrinter exprGrammar)) $ failure
     ppParseResult
       :: (a -> Doc)
       -> PLParser.ParseResult a
@@ -474,10 +477,10 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         }
 
   where
-    exprGrammar :: Grammar Expr
+    exprGrammar :: Grammar CommentedExpr
     exprGrammar = top (expr var (sub $ typ tyVar) tyVar)
 
-    typeGrammar :: Grammar Type
+    typeGrammar :: Grammar CommentedType
     typeGrammar = top $ typ tyVar
 
 data TestCase a = TestCase

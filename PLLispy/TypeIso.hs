@@ -11,6 +11,7 @@ import PL.Expr hiding (appise,lamise)
 import PL.Kind
 import PL.Type
 import PL.TyVar
+import PL.Commented
 import PL.Name
 import PL.Var
 
@@ -48,7 +49,7 @@ typeNameIso = Iso
   ,_backwards = \(TypeName txt) -> Just txt
   }
 
-namedIso :: Iso TypeName Type
+namedIso :: Iso TypeName CommentedType
 namedIso = Iso
   {_forwards = \typeName
                 -> Just . Named $ typeName
@@ -59,7 +60,7 @@ namedIso = Iso
                      _ -> Nothing
   }
 
-arrowIso :: Iso (Type, Type) Type
+arrowIso :: Iso (CommentedType, CommentedType) CommentedType
 arrowIso = Iso
   {_forwards = \(fromTy, toTy)
                 -> Just . Arrow fromTy $ toTy
@@ -70,7 +71,7 @@ arrowIso = Iso
                      _ -> Nothing
   }
 
-sumTIso :: Iso (NonEmpty Type) Type
+sumTIso :: Iso (NonEmpty CommentedType) CommentedType
 sumTIso = Iso
   {_forwards = \tys
                 -> Just . SumT $ tys
@@ -81,7 +82,7 @@ sumTIso = Iso
                      _ -> Nothing
   }
 
-productTIso :: Iso [Type] Type
+productTIso :: Iso [CommentedType] CommentedType
 productTIso = Iso
   {_forwards = \tys
                 -> Just . ProductT $ tys
@@ -92,7 +93,7 @@ productTIso = Iso
                      _ -> Nothing
   }
 
-unionTIso :: Iso (Set.Set Type) Type
+unionTIso :: Iso (Set.Set CommentedType) CommentedType
 unionTIso = Iso
   {_forwards = \tys
                 -> Just . UnionT $ tys
@@ -103,7 +104,7 @@ unionTIso = Iso
                      _ -> Nothing
   }
 
-bigArrowIso :: Iso (Kind, Type) Type
+bigArrowIso :: Iso (Kind, CommentedType) CommentedType
 bigArrowIso = Iso
   {_forwards = \(fromKind, toTy)
                 -> Just . BigArrow fromKind $ toTy
@@ -114,7 +115,7 @@ bigArrowIso = Iso
                     _ -> Nothing
   }
 
-typeLamIso :: Iso (Kind, Type) Type
+typeLamIso :: Iso (Kind, CommentedType) CommentedType
 typeLamIso = Iso
   {_forwards = \(fromKind, toTy)
                 -> Just . TypeLam fromKind $ toTy
@@ -126,7 +127,7 @@ typeLamIso = Iso
   }
 
 
-typeAppIso :: Iso (Type, Type) Type
+typeAppIso :: Iso (CommentedType, CommentedType) CommentedType
 typeAppIso = Iso
   {_forwards = \(fTy, xTy)
                 -> Just . TypeApp fTy $ xTy
@@ -137,7 +138,7 @@ typeAppIso = Iso
                      _ -> Nothing
   }
 
-typeBindingIso :: Iso TyVar Type
+typeBindingIso :: Iso TyVar CommentedType
 typeBindingIso = Iso
   {_forwards = \tb
                 -> Just . TypeBinding $ tb
@@ -146,6 +147,17 @@ typeBindingIso = Iso
                      TypeBinding tb
                        -> Just tb
                      _ -> Nothing
+  }
+
+commentedIso :: Iso (Comment, CommentedType) CommentedType
+commentedIso = Iso
+  {_forwards = \(c,typ)
+                -> Just . CommentedType c $ typ
+  ,_backwards = \typ
+                 -> case typ of
+                      CommentedType c typ
+                        -> Just (c, typ)
+                      _ -> Nothing
   }
 
 -- TODO: Doesnt belong here.

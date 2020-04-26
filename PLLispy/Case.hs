@@ -32,6 +32,7 @@ import PLLispy.Type
 import PLLispy.Level
 
 import PL.Case
+import PL.Commented
 import PL.Expr hiding (appise,lamise)
 import PL.Kind
 import PL.Type
@@ -47,8 +48,8 @@ caseBody
   :: ( ?eb :: Grammar Var
      , ?tb :: Grammar TyVar
      )
-  => Grammar Expr
-  -> Grammar (Case Expr MatchArg)
+  => Grammar CommentedExpr
+  -> Grammar (Case CommentedExpr CommentedMatchArg)
 caseBody expr =
   caseAnalysisIso \$/ expr                                                                        -- The scrutinee expression
                    \*/ (rmany (try (spacePreferred */ (parensPreferred $ caseBranch expr))))       -- Zero or many case branches. Try allows us to have 0 matches and unconsume spaces and parens that might be part of the default branch.
@@ -62,12 +63,12 @@ caseBody expr =
       ,_backwards = id
       }
 
-    caseAnalysisIso :: Iso (Expr
-                           ,([CaseBranch Expr MatchArg]
-                            ,Maybe Expr
+    caseAnalysisIso :: Iso (CommentedExpr
+                           ,([CaseBranch CommentedExpr CommentedMatchArg]
+                            ,Maybe CommentedExpr
                             )
                            )
-                           (Case Expr MatchArg)
+                           (Case CommentedExpr CommentedMatchArg)
     caseAnalysisIso = Iso
       {_forwards = \(scrutinee,(branches,mDefault)) -> case (branches,mDefault) of
          ([], Just d)
@@ -99,8 +100,8 @@ caseBranch
   :: ( ?eb :: Grammar Var
      , ?tb :: Grammar TyVar
      )
-  => Grammar Expr
-  -> Grammar (CaseBranch Expr MatchArg)
+  => Grammar CommentedExpr
+  -> Grammar (CaseBranch CommentedExpr CommentedMatchArg)
 caseBranch exprI =
   (textIs "|") */                                        -- A token bar character followed by
   (caseBranchIso \$/ (spaceAllowed   */ (sub matchArgI)) -- a matchArg to match the expression

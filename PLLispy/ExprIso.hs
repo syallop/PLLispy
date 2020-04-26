@@ -10,6 +10,7 @@ import PLLispy.Type
 import Data.Text
 
 import PL.Case
+import PL.Commented
 import PL.Expr hiding (appise,lamise)
 import PL.Kind
 import PL.Type
@@ -24,7 +25,7 @@ import qualified Data.Set as Set
  -
  - We _could_ make these more generic and use 'ExprFor' and the extension types.
  -}
-lamIso :: Iso (Type, Expr) Expr
+lamIso :: Iso (CommentedType, CommentedExpr) CommentedExpr
 lamIso = Iso
   {_forwards = \(abs,body)
                 -> Just $ Lam abs body
@@ -35,7 +36,7 @@ lamIso = Iso
                      _ -> Nothing
   }
 
-appIso :: Iso (Expr,Expr) Expr
+appIso :: Iso (CommentedExpr,CommentedExpr) CommentedExpr
 appIso = Iso
   {_forwards = \(f,x)
                 -> Just $ App f x
@@ -46,7 +47,7 @@ appIso = Iso
                      _ -> Nothing
   }
 
-bindingIso :: Iso Var Expr
+bindingIso :: Iso Var CommentedExpr
 bindingIso = Iso
   {_forwards = \b
                -> Just . Binding $ b
@@ -57,7 +58,7 @@ bindingIso = Iso
                     _ -> Nothing
   }
 
-caseAnalysisIso :: Iso (Case Expr MatchArg) Expr
+caseAnalysisIso :: Iso (Case CommentedExpr CommentedMatchArg) CommentedExpr
 caseAnalysisIso = Iso
   {_forwards = \caseA
                -> Just . CaseAnalysis $ caseA
@@ -68,7 +69,7 @@ caseAnalysisIso = Iso
                     _ -> Nothing
   }
 
-sumIso :: Iso (Int, (Expr, NonEmpty Type)) Expr
+sumIso :: Iso (Int, (CommentedExpr, NonEmpty CommentedType)) CommentedExpr
 sumIso = Iso
   {_forwards = \(sumIx, (expr, inTypes))
                -> Just . Sum expr sumIx $ inTypes
@@ -79,7 +80,7 @@ sumIso = Iso
                     _ -> Nothing
   }
 
-productIso :: Iso [Expr] Expr
+productIso :: Iso [CommentedExpr] CommentedExpr
 productIso = Iso
   {_forwards = \exprs
                -> Just . Product $ exprs
@@ -90,7 +91,7 @@ productIso = Iso
                     _ -> Nothing
   }
 
-unionIso :: Iso (Type, (Expr, Set.Set Type)) Expr
+unionIso :: Iso (CommentedType, (CommentedExpr, Set.Set CommentedType)) CommentedExpr
 unionIso = Iso
   {_forwards = \(unionIx, (expr, inTypes))
                -> Just . Union expr unionIx $ inTypes
@@ -101,7 +102,7 @@ unionIso = Iso
                     _ -> Nothing
   }
 
-bigLamIso :: Iso (Kind, Expr) Expr
+bigLamIso :: Iso (Kind, CommentedExpr) CommentedExpr
 bigLamIso = Iso
   {_forwards = \(absKind, bodyExpr)
                -> Just . BigLam absKind $ bodyExpr
@@ -112,7 +113,7 @@ bigLamIso = Iso
                     _ -> Nothing
   }
 
-bigAppIso :: Iso  (Expr, Type) Expr
+bigAppIso :: Iso (CommentedExpr, CommentedType) CommentedExpr
 bigAppIso = Iso
   {_forwards = \(f, xTy)
                -> Just . BigApp f $ xTy
@@ -123,6 +124,16 @@ bigAppIso = Iso
                     _ -> Nothing
   }
 
+commentedIso :: Iso (Comment, CommentedExpr) CommentedExpr
+commentedIso = Iso
+  {_forwards = \(c,expr)
+                -> Just . CommentedExpr c $ expr
+  ,_backwards = \expr
+                 -> case expr of
+                      CommentedExpr c expr
+                        -> Just (c, expr)
+                      _ -> Nothing
+  }
 
 -- TODO: Doesnt belong here.
 varIso :: Iso Int Var

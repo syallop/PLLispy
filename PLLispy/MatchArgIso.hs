@@ -11,6 +11,7 @@ import PL.Kind
 import PL.TyVar
 import PL.Name
 import PL.Var
+import PL.Commented
 
 import qualified Data.Set as Set
 import qualified Data.Text as Text
@@ -25,7 +26,7 @@ import Data.List.NonEmpty
  - types.
  -}
 
-matchSumIso :: Iso (Int, MatchArg) MatchArg
+matchSumIso :: Iso (Int, CommentedMatchArg) CommentedMatchArg
 matchSumIso = Iso
   {_forwards = \(ix, matchArg) -> Just $ MatchSum ix matchArg
   ,_backwards = \matchArg -> case matchArg of
@@ -34,7 +35,7 @@ matchSumIso = Iso
                               _ -> Nothing
   }
 
-matchProductIso :: Iso [MatchArg] MatchArg
+matchProductIso :: Iso [CommentedMatchArg] CommentedMatchArg
 matchProductIso = Iso
   {_forwards = \matchArgs -> Just $ MatchProduct matchArgs
   ,_backwards = \matchArg -> case matchArg of
@@ -43,7 +44,7 @@ matchProductIso = Iso
                               _ -> Nothing
   }
 
-matchUnionIso :: Iso (Type, MatchArg) MatchArg
+matchUnionIso :: Iso (CommentedType, CommentedMatchArg) CommentedMatchArg
 matchUnionIso = Iso
   {_forwards = \(tyIx, matchArg) -> Just $ MatchUnion tyIx matchArg
   ,_backwards = \matchArg -> case matchArg of
@@ -52,7 +53,7 @@ matchUnionIso = Iso
                               _ -> Nothing
   }
 
-matchBindingIso :: Iso Var MatchArg
+matchBindingIso :: Iso Var CommentedMatchArg
 matchBindingIso = Iso
   {_forwards = \b -> Just $ MatchBinding b
   ,_backwards = \matchArg -> case matchArg of
@@ -61,12 +62,23 @@ matchBindingIso = Iso
                               _ -> Nothing
   }
 
-matchBindIso :: Iso () MatchArg
+matchBindIso :: Iso () CommentedMatchArg
 matchBindIso = Iso
   {_forwards = \() -> Just Bind
   ,_backwards = \matchArg -> case matchArg of
                               Bind
                                 -> Just ()
                               _ -> Nothing
+  }
+
+commentedIso :: Iso (Comment, CommentedMatchArg) CommentedMatchArg
+commentedIso = Iso
+  {_forwards = \(c,matchArg)
+                -> Just . CommentedMatchArg c $ matchArg
+  ,_backwards = \matchArg
+                 -> case matchArg of
+                      CommentedMatchArg c matchArg
+                        -> Just (c, matchArg)
+                      _ -> Nothing
   }
 

@@ -1,6 +1,7 @@
 {-# LANGUAGE
     OverloadedStrings
   , FlexibleInstances
+  , RankNTypes
   #-}
 module PLLispy.Test.TypeSpec where
 
@@ -10,6 +11,7 @@ import PL.Type
 import PL.Expr
 import PL.TyVar
 import PL.Error
+import PL.Commented
 
 import PL.Test.Parsing.Type
 import PL.Test.Type
@@ -54,13 +56,14 @@ testKeyPrograms =
     typeTestCases :: Map.Map Text.Text TypeTestCase
     typeTestCases = mkTypeTestCases sources
 
-    ppType :: Type -> Doc
-    ppType = fromMaybe mempty . pprint (toPrinter typeGrammar)
+    ppType :: forall phase. TypeFor phase -> Doc
+    ppType = undefined
+    --ppType = fromMaybe mempty . pprint (toPrinter typeGrammar)
 
-    typeGrammar :: Grammar Type
+    typeGrammar :: Grammar CommentedType
     typeGrammar = top $ typ tyVar
 
-    lispyParser :: Text.Text -> Either (Error DefaultPhase) (TypeFor DefaultPhase, Source)
+    lispyParser :: Text.Text -> Either (Error CommentedPhase) (TypeFor CommentedPhase, Source)
     lispyParser input = let p = toParser typeGrammar
                          in case runParser p input of
                               ParseFailure _failures cursor
@@ -75,7 +78,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
   describe "Types" $ do
     it "Any tests" pending
   where
-    typeGrammar :: Grammar Type
+    typeGrammar :: Grammar CommentedType
     typeGrammar = top $ typ tyVar
 
 -- Test that some source code behaves correctly with parsing and printing
