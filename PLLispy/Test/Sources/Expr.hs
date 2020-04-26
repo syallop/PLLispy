@@ -37,18 +37,37 @@ import qualified Data.Text as Text
 sources :: TestExprSources
 sources = TestExprSources
   { _lamTestCases = TestLamSources
-      { _singleLamTestCase  = "λFoo (0)"
-      , _nestedLamTestCase  = "λFoo (λBar 1)"
-      , _chainedLamTestCase = "λFoo Bar Baz 2"
+      { _singleLamTestCase  =
+          "\"An anonymous function which accepts any expression with the type Foo\n\
+          \and binds it in the 0th position to be returned unchanged.\"\n\n\
+          \λFoo (0)"
+
+      , _nestedLamTestCase  =
+          "\"Accept multiple arguments by nesting lambdas. Bindings may refer\n\
+          \to any expression bound in a lambda above them.\"\n\n\
+          \λFoo (λBar 1)"
+
+      , _chainedLamTestCase =
+          "\"Instead of nesting lambdas to accept multiple arguments they can\n\
+          \be given to a single lambda.\"\n\n\
+          \λFoo Bar Baz 2"
       }
 
   , _bigLamTestCases = TestBigLamSources
-      { _singleBigLamTestCase = "ΛKIND λ(?0) 0"
+      { _singleBigLamTestCase =
+          "\"An anonymous function which accepts any type with the kind KIND\n\
+          \, binds it in the 0th position for type arguments\n\
+          \, accepts any expression with the provided 0th type\n\
+          \and binds it in the 0th position for expression arguments to be\n\
+          \returned unchanged.\"\n\n\
+          \ΛKIND λ(?0) 0"
       }
 
   , _booleanTestCases = TestBooleanSources
       { _andTestCase =
-          "λBool λBool (CASE 0\n\
+          "\"Boolean and. Returns a true expression if and only if both arguments\n\
+          \are true. Otherwise false.\"\n\n\
+          \λBool λBool (CASE 0\n\
           \              (| (+0 (*)) (+0 (*) (*) (*)))\n\
           \              (CASE 1\n\
           \               (| (+0 (*)) (+0 (*) (*) (*)))\n\
@@ -59,7 +78,9 @@ sources = TestExprSources
 
   , _naturalTestCases = TestNaturalSources
       { _subTwoTestCase =
-          "λNat (CASE 0\n\
+          "\"Subtract two from a natural number, defaulting to 0 if the natural\n\
+          \is too small.\"\n\n\
+          \λNat (CASE 0\n\
           \       (| (+1 (+1 ?)) (0))\n\
           \       (+0 (*) (*) Nat)\n\
           \     )"
@@ -67,7 +88,9 @@ sources = TestExprSources
 
   , _sumTestCases = TestSumSources
       { _sumThreeTestCase =
-          "λ(+ Nat Bool Nat) (CASE 0\n\
+          "\"A function displaying matching on a sum of three types to do nothing\n\
+          \of any obvious use.\"\n\n\
+          \λ(+ Nat Bool Nat) (CASE 0\n\
           \                     (| (+0 (+1 ?)) (0))\n\
           \                     (| (+0 (+0 *)) (+0 (*) (*) Nat))\n\
           \                     (| (+1 (+0 *)) (+0 (*) (*) Nat))\n\
@@ -79,7 +102,9 @@ sources = TestExprSources
 
   , _productTestCases = TestProductSources
       { _productThreeTestCase =
-          "λ(* Nat Bool Nat) (CASE 0\n\
+          "\"A function displaying matching on a product of three types to do nothing\n\
+          \of any obvious use.\"\n\n\
+          \λ(* Nat Bool Nat) (CASE 0\n\
           \                    (| (* (+0 (*)) (?) (+0 (*))) (0))\n\
           \                    (| (* (?)      (?) (+0 (*))) (0))\n\
           \                    (+0 (*) (*) (*))\n\
@@ -88,7 +113,9 @@ sources = TestExprSources
 
   , _unionTestCases = TestUnionSources
       { _unionTwoTestCase =
-          "λ(∪ Bool Nat) (CASE 0\n\
+          "\"A function displaying matching on a union of two types to do nothing\n\
+          \of any obvious use.\"\n\n\
+          \λ(∪ Bool Nat) (CASE 0\n\
           \                (| (∪ Nat  (+0 (*))) (+0 (*) (*) (*)))\n\
           \                (| (∪ Nat  (+1 ?))   (+1 (*) (*) (*)))\n\
           \                (| (∪ Bool (+1 (*))) (+1 (*) (*) (*)))\n\
@@ -97,9 +124,22 @@ sources = TestExprSources
       }
 
   , _functionTestCases = TestFunctionSources
-      { _idTestCase    = "Λ KIND λ?0 (0)"
-      , _constTestCase = "Λ KIND (ΛKIND (λ?1 (λ?0 (1))))"
-      , _applyTestCase = "Λ KIND (ΛKIND (λ(→ ?1 ?0) (λ?1 (@1 (0)))))"
+      { _idTestCase =
+          "\"The identity function takes any type of kind KIND,\n\
+          \any expression of that type and returns the expression unaltered.\"\n\n\
+          \Λ KIND λ?0 (0)"
+
+      , _constTestCase =
+          "\"The const function takes two types of kind KIND\n\
+          \any two expressions of the respective types and returns the first\n\
+          \argument unaltered.\"\n\n\
+          \Λ KIND (ΛKIND (λ?1 (λ?0 (1))))"
+
+      , _applyTestCase =
+          "\"The apply function takes two types of kind KIND\n\
+          \a function expression between the two types, a value of the first type\n\
+          \and applies the value to the function.\"\n\
+          \Λ KIND (ΛKIND (λ(→ ?1 ?0) (λ?1 (@1 (0)))))"
       }
   }
 
