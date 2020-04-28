@@ -124,23 +124,23 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
     describe "Lambdas" $ do
       testcase $ TestCase
         { _testCase             = "Simple"
-        , _input                = ["\\Foo (0)" -- 'standard' form
-                                  ,"\\Foo 0"   -- Dropping all uneccesary parens
+        , _input                = ["\\Bool (0)" -- 'standard' form
+                                  ,"\\Bool 0"   -- Dropping all uneccesary parens
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Lam (Named $ "Foo") (Binding $ VZ)
+        , _shouldParse          = Just $ Lam (Named $ "Bool") (Binding $ VZ)
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "λFoo 0"
+        , _shouldPrint          = Just "λBool 0"
         }
 
       testcase $ TestCase
         { _testCase             = "Complex type argument"
-        , _input                = ["\\(+Foo Bar) (0)"
+        , _input                = ["\\(+Bool Nat) (0)"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Lam (SumT $ NE.fromList [Named $ "Foo", Named $ "Bar"]) (Binding $ VZ)
+        , _shouldParse          = Just $ Lam (SumT $ NE.fromList [Named $ "Bool", Named $ "Nat"]) (Binding $ VZ)
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "λ(+Foo Bar) 0"
+        , _shouldPrint          = Just "λ(+Bool Nat) 0"
         }
 
     describe "Application" $ do
@@ -323,37 +323,37 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
     describe "Arrow" $ do
       testcase $ TestCase
         { _testCase             = "Simplest function type"
-        , _input                = ["→ (Foo) (Bar)"
-                                  ,"→ Foo Bar"
-                                  ,"-> Foo Bar"
+        , _input                = ["→ (Bool) (Nat)"
+                                  ,"→ Bool Nat"
+                                  ,"-> Bool Nat"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ Arrow (Named "Foo") (Named "Bar")
+        , _shouldParse          = Just $ Arrow (Named "Bool") (Named "Nat")
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "→Foo Bar"
+        , _shouldPrint          = Just "→Bool Nat"
         }
 
     describe "Sum" $ do
       testcase $ TestCase
         { _testCase             = "Singleton sum"
-        , _input                = ["+ (Foo)"
-                                  ,"+ Foo"
+        , _input                = ["+ (Bool)"
+                                  ,"+ Bool"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ SumT $ NE.fromList [Named "Foo"]
+        , _shouldParse          = Just $ SumT $ NE.fromList [Named "Bool"]
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "+Foo"
+        , _shouldPrint          = Just "+Bool"
         }
 
       testcase $ TestCase
         { _testCase             = "Sum of two"
-        , _input                = ["+ (Foo) (Bar)"
-                                  ,"+ Foo Bar"
+        , _input                = ["+ (Bool) (Nat)"
+                                  ,"+ Bool Nat"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ SumT $ NE.fromList [Named "Foo", Named "Bar"]
+        , _shouldParse          = Just $ SumT $ NE.fromList [Named "Bool", Named "Nat"]
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "+Foo Bar"
+        , _shouldPrint          = Just "+Bool Nat"
         }
 
     describe "Product" $ do
@@ -369,24 +369,24 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
 
       testcase $ TestCase
         { _testCase             = "Singleton product"
-        , _input                = ["* (Foo)"
-                                  ,"* Foo"
+        , _input                = ["* (Bool)"
+                                  ,"* Bool"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ ProductT [Named "Foo"]
+        , _shouldParse          = Just $ ProductT [Named "Bool"]
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "*Foo"
+        , _shouldPrint          = Just "*Bool"
         }
 
       testcase $ TestCase
         { _testCase             = "Two product"
-        , _input                = ["* (Foo) (Bar)"
-                                  ,"* Foo Bar"
+        , _input                = ["* (Bool) (Nat)"
+                                  ,"* Bool Nat"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ ProductT [Named "Foo", Named "Bar"]
+        , _shouldParse          = Just $ ProductT [Named "Bool", Named "Nat"]
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "*Foo Bar"
+        , _shouldPrint          = Just "*Bool Nat"
         }
 
     describe "Union" $ do
@@ -405,63 +405,63 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
 
       testcase $ TestCase
         { _testCase             = "Singleton union"
-        , _input                = ["U (Foo)"
-                                  ,"U Foo"
+        , _input                = ["U (Bool)"
+                                  ,"U Bool"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ UnionT $ Set.fromList [Named "Foo"]
+        , _shouldParse          = Just $ UnionT $ Set.fromList [Named "Bool"]
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "∪Foo"
+        , _shouldPrint          = Just "∪Bool"
         }
 
       testcase $ TestCase
         { _testCase             = "Two union"
-        , _input                = ["U (Foo) (Bar)"
-                                  ,"U (Bar) (Foo)"
-                                  ,"U Foo Bar"
+        , _input                = ["U (Bool) (Nat)"
+                                  ,"U (Nat) (Bool)"
+                                  ,"U Bool Nat"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ UnionT $ Set.fromList [Named "Foo", Named "Bar"]
+        , _shouldParse          = Just $ UnionT $ Set.fromList [Named "Bool", Named "Nat"]
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "∪Bar Foo"
+        , _shouldPrint          = Just "∪Bool Nat"
         }
 
     describe "Big Arrow" $ do
       testcase $ TestCase
         { _testCase             = "Simplest big arrow"
-        , _input                = ["/-> (KIND) (Foo)"
-                                  ,"/-> KIND Foo"
+        , _input                = ["/-> (KIND) (Bool)"
+                                  ,"/-> KIND Bool"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ BigArrow Kind (Named "Foo")
+        , _shouldParse          = Just $ BigArrow Kind (Named "Bool")
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "/->KIND Foo"
+        , _shouldPrint          = Just "/->KIND Bool"
         }
 
     describe "Type Lam" $ do
       testcase $ TestCase
         { _testCase             = "Simplest type lambda"
-        , _input                = ["/\\ (KIND) (Foo)"
-                                  ,"/\\ KIND Foo"
+        , _input                = ["/\\ (KIND) (Bool)"
+                                  ,"/\\ KIND Bool"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ TypeLam Kind (Named "Foo")
+        , _shouldParse          = Just $ TypeLam Kind (Named "Bool")
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "Λ(KIND) Foo"
+        , _shouldPrint          = Just "Λ(KIND) Bool"
         }
 
     describe "Type App" $ do
       testcase $ TestCase
         { _testCase             = "Simple"
-        , _input                = ["/@ (Foo) (Bar)"
-                                  ,"/@ Foo Bar"
-                                  ,"/@ (Foo) Bar"
-                                  ,"/@ Foo (Bar)"
+        , _input                = ["/@ (Bool) (Nat)"
+                                  ,"/@ Bool Nat"
+                                  ,"/@ (Bool) Nat"
+                                  ,"/@ Bool (Nat)"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ TypeApp (Named "Foo") (Named "Bar")
+        , _shouldParse          = Just $ TypeApp (Named "Bool") (Named "Nat")
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "/@Foo Bar"
+        , _shouldPrint          = Just "/@Bool Nat"
         }
 
     describe "Type binding" $ do
