@@ -42,8 +42,8 @@ import PL.TyVar
 -- A Case body is made up of:
 -- - A Scrutinee expression
 -- - Either:
---   - One or many branches and an optional default expression
 --   - A default expression
+--   - One or many branches and an optional default expression
 caseBody
   :: ( ?eb :: Grammar Var
      , ?tb :: Grammar TyVar
@@ -51,47 +51,50 @@ caseBody
   => Grammar CommentedExpr
   -> Grammar (Case CommentedExpr CommentedMatchArg)
 caseBody expr =
-  caseAnalysisIso \$/ expr                                                                        -- The scrutinee expression
-                   \*/ (rmany (try (spacePreferred */ (parensPreferred $ caseBranch expr))))       -- Zero or many case branches. Try allows us to have 0 matches and unconsume spaces and parens that might be part of the default branch.
-                   \*/ (alternatives [ try $ justIso \$/ (spacePreferred */ expr)  -- An optional default branch. The entire expression is invalid if no branches or a default are supplied.
-                                     , rpure Nothing
-                                     ])
+  caseAnalysisIso \$/ expr
+                  \*/ alternatives [ try defaultOnly
+                                   , branchesAndOptionalDefault
+                                   ]
   where
+    defaultOnly :: Grammar (CaseBranches CommentedExpr CommentedMatchArg)
+    defaultOnly = defaultOnlyIso \$/ (spacePreferred */ expr)
+
+    branchesAndOptionalDefault :: Grammar (CaseBranches CommentedExpr CommentedMatchArg)
+    branchesAndOptionalDefault =
+      branchesAndOptionalDefaultIso \$/ rmany1 (try (spacePreferred */ betweenParens (caseBranch expr)))
+                                    \*/ alternatives [ try (justIso \$/ (spacePreferred */ expr))
+                                                     , rpure Nothing
+                                                     ]
+
+    caseAnalysisIso :: Iso (CommentedExpr,CaseBranches CommentedExpr CommentedMatchArg) (Case CommentedExpr CommentedMatchArg)
+    caseAnalysisIso = Iso
+      { _forwards  = \(scrutinee, branches) -> Just (Case scrutinee branches)
+      , _backwards = \(Case scrutinee branches) -> Just (scrutinee, branches)
+      }
+
+    defaultOnlyIso :: Iso CommentedExpr (CaseBranches CommentedExpr CommentedMatchArg)
+    defaultOnlyIso = Iso
+      { _forwards  = Just . DefaultOnly
+      , _backwards = \c -> case c of
+          DefaultOnly e
+            -> Just e
+          _ -> Nothing
+      }
+
+    branchesAndOptionalDefaultIso :: Iso ([CaseBranch CommentedExpr CommentedMatchArg], Maybe CommentedExpr) (CaseBranches CommentedExpr CommentedMatchArg)
+    branchesAndOptionalDefaultIso = Iso
+      { _forwards  = \(neBranches,mDefault) -> Just $ CaseBranches (NE.fromList neBranches) mDefault
+      , _backwards = \c -> case c of
+          CaseBranches neBranches mDefault
+            -> Just (NE.toList neBranches,mDefault)
+          _ -> Nothing
+      }
+
     justIso :: Iso a (Maybe a)
     justIso = Iso
       {_forwards  = Just . Just
       ,_backwards = id
       }
-
-    caseAnalysisIso :: Iso (CommentedExpr
-                           ,([CaseBranch CommentedExpr CommentedMatchArg]
-                            ,Maybe CommentedExpr
-                            )
-                           )
-                           (Case CommentedExpr CommentedMatchArg)
-    caseAnalysisIso = Iso
-      {_forwards = \(scrutinee,(branches,mDefault)) -> case (branches,mDefault) of
-         ([], Just d)
-           -> Just $ Case scrutinee $ DefaultOnly d
-
-         -- No branches or default provided
-         ([],Nothing)
-           -> Nothing
-
-         (bs,_)
-           -> Just $ Case scrutinee $ CaseBranches (NE.fromList bs) mDefault
-
-      ,_backwards = \expr -> case expr of
-          (Case scrutinee someBranches)
-            -> case someBranches of
-                 DefaultOnly def
-                   -> Just $ (scrutinee,([],Just def))
-                 CaseBranches bs mDef
-                   -> Just $ (scrutinee,(NE.toList bs,mDef))
-          _
-            -> Nothing
-      }
-
 
 -- A single case branch is a matchArg pattern, then a result expression
 -- E.G.
