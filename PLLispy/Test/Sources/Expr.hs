@@ -38,19 +38,19 @@ sources :: TestExprSources
 sources = TestExprSources
   { _lamTestCases = TestLamSources
       { _singleLamTestCase  =
-          "\"An anonymous function which accepts any expression with the type Foo\n\
+          "\"An anonymous function which accepts any expression with the type Bool\n\
           \and binds it in the 0th position to be returned unchanged.\"\n\n\
-          \λFoo (0)"
+          \λBool (0)"
 
       , _nestedLamTestCase  =
           "\"Accept multiple arguments by nesting lambdas. Bindings may refer\n\
           \to any expression bound in a lambda above them.\"\n\n\
-          \λFoo (λBar 1)"
+          \λBool (λNat 1)"
 
       , _chainedLamTestCase =
           "\"Instead of nesting lambdas to accept multiple arguments they can\n\
           \be given to a single lambda.\"\n\n\
-          \λFoo Bar Baz 2"
+          \λBool Nat Unit 2"
       }
 
   , _bigLamTestCases = TestBigLamSources
