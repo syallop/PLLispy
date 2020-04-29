@@ -25,6 +25,7 @@ import PL.Test.Expr
 import PL.Test.Expr.BigLam
 import PL.Test.Expr.Boolean
 import PL.Test.Expr.Function
+import PL.Test.Expr.Maybe
 import PL.Test.Expr.Lam
 import PL.Test.Expr.Natural
 import PL.Test.Expr.Product
@@ -140,6 +141,16 @@ sources = TestExprSources
           \a function expression between the two types, a value of the first type\n\
           \and applies the value to the function.\"\n\
           \Λ KIND (ΛKIND (λ(→ ?1 ?0) (λ?1 (@1 (0)))))"
+      }
+
+  , _maybeTestCases = TestMaybeSources
+      { _defaultNatTestCase =
+          "\"Accept a value of type Maybe Nat, if it's nothing default to zero,\n\
+          \otherwise unwrap the number\"\n\
+          \\\(/@Maybe Nat) (CASE 0\n\
+          \  (| (+0 (*)) (+0 (*) (*) Nat))\n\
+          \  (| (+1 ?)   (0))\n\
+          \)"
       }
   }
 
