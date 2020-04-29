@@ -6,14 +6,14 @@
   , ScopedTypeVariables
   #-}
 {-|
-Module      : PLLispy.MatchArg
+Module      : PLLispy.Pattern
 Copyright   : (c) Samuel A. Yallop, 2016
 Maintainer  : syallop@gmail.com
 Stability   : experimental
 
 A Grammar for PL.Expr.Expr with a lisp-like syntax.
 -}
-module PLLispy.MatchArg where
+module PLLispy.Pattern where
 
 import Control.Applicative
 import Data.List.NonEmpty (NonEmpty (..),uncons)
@@ -26,7 +26,7 @@ import PLGrammar
 import Reversible
 import Reversible.Iso
 
-import PLLispy.MatchArgIso
+import PLLispy.PatternIso
 import PLLispy.Kind
 import PLLispy.Type
 import PLLispy.Level
@@ -39,95 +39,95 @@ import PL.Type
 import PL.Var
 import PL.TyVar
 
-matchArgI
+patternI
   :: ( ?eb :: Grammar Var
      , ?tb :: Grammar TyVar
      )
   => Level
-  -> Grammar CommentedMatchArg
-matchArgI = level unambiguous ambiguous
+  -> Grammar CommentedPattern
+patternI = level unambiguous ambiguous
   where
-    unambiguous :: [Grammar CommentedMatchArg]
+    unambiguous :: [Grammar CommentedPattern]
     unambiguous =
       [ bind
-      , matchBinding
-      , commentedMatchArg
+      , bindingPattern
+      , commentedPattern
       ]
 
-    ambiguous :: [Grammar CommentedMatchArg]
+    ambiguous :: [Grammar CommentedPattern]
     ambiguous =
-      [ matchSum
-      , matchProduct
-      , matchUnion
+      [ sumPattern
+      , productPattern
+      , unionPattern
       ]
 
-matchArg
+pattern
   :: Grammar Var
   -> Grammar TyVar
   -> Level
-  -> Grammar CommentedMatchArg
-matchArg eb tb n =
+  -> Grammar CommentedPattern
+pattern eb tb n =
   let ?eb = eb
       ?tb = tb
-   in matchArgI n
+   in patternI n
 
--- A plus followed by an index and a matchArg
+-- A plus followed by an index and a pattern
 -- E.G.: +0 ?
-matchSum
+sumPattern
   :: ( ?eb :: Grammar Var
      , ?tb :: Grammar TyVar
      )
-  => Grammar CommentedMatchArg
-matchSum =
+  => Grammar CommentedPattern
+sumPattern =
   plus */                                           -- A token plus character followed by
-  (matchSumIso \$/ (spaceAllowed */ natural)        -- the index into the sum type
-               \*/ spacePreferred */ sub matchArgI) -- then the match for that type.
+  (sumPatternIso \$/ (spaceAllowed */ natural)        -- the index into the sum type
+                 \*/ spacePreferred */ sub patternI) -- then the match for that type.
 
--- A star followed by zero or more matchArgs
-matchProduct
+-- A star followed by zero or more patterns
+productPattern
   :: ( ?eb :: Grammar Var
      , ?tb :: Grammar TyVar
      )
-  => Grammar CommentedMatchArg
-matchProduct =
+  => Grammar CommentedPattern
+productPattern =
   star */                                                                      -- A token star character followed by
-  (matchProductIso \$/ (spaceAllowed */ sepBy spacePreferred (sub matchArgI))) -- a match for each component of the product
+  (productPatternIso \$/ (spaceAllowed */ sepBy spacePreferred (sub patternI))) -- a match for each component of the product
 
--- A union followed by a type index and a matchArg
-matchUnion
+-- A union followed by a type index and a pattern
+unionPattern
   :: ( ?eb :: Grammar Var
      , ?tb :: Grammar TyVar
      )
-  => Grammar CommentedMatchArg
-matchUnion =
+  => Grammar CommentedPattern
+unionPattern =
   union */                                              -- A union character followed by
-  (matchUnionIso \$/ (spaceAllowed   */ sub typI)       -- the type index into a union type
-                 \*/ (spacePreferred */ sub matchArgI)) -- then the match for that type.
+  (unionPatternIso \$/ (spaceAllowed   */ sub typI)       -- the type index into a union type
+                   \*/ (spacePreferred */ sub patternI)) -- then the match for that type.
 
 -- A var
-matchBinding
+bindingPattern
   :: ( ?eb :: Grammar Var
      )
-  => Grammar CommentedMatchArg
-matchBinding =
-  matchBindingIso \$/ ?eb -- Match the var binding by the provided grammar.
+  => Grammar CommentedPattern
+bindingPattern =
+  bindingPatternIso \$/ ?eb -- Match the var binding by the provided grammar.
 
 -- A '?'
-bind :: Grammar CommentedMatchArg
+bind :: Grammar CommentedPattern
 bind =
   question */                 -- A question character indicates an expression is to be bound.
-  (matchBindIso \$/ rpure ())
+  (bindIso \$/ rpure ())
 
--- A Commented MatchArg
-commentedMatchArg
+-- A Commented Pattern
+commentedPattern
   :: ( ?eb :: Grammar Var
      , ?tb :: Grammar TyVar
      )
-  => Grammar CommentedMatchArg
-commentedMatchArg =
+  => Grammar CommentedPattern
+commentedPattern =
   charIs '"' */
   (commentedIso \$/ (commentText \* charIs '"')
-                \*/ (spaceAllowed */ sub matchArgI)
+                \*/ (spaceAllowed */ sub patternI)
   )
   where
     commentText :: Grammar Comment

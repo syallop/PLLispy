@@ -3,7 +3,7 @@
   , FlexibleInstances
   , RankNTypes
   #-}
-module PLLispy.Test.MatchArgSpec where
+module PLLispy.Test.PatternSpec where
 
 import PL
 import PL.Commented
@@ -13,22 +13,23 @@ import PL.Expr
 import PL.TyVar
 import PL.Error
 
-import PL.Test.Parsing.MatchArg
-import PL.Test.MatchArg
-import PL.Test.MatchArg
-import PL.Test.MatchArgTestCase
-import PL.Test.MatchArg.Bind
-import PL.Test.MatchArg.Sum
-import PL.Test.MatchArg.Product
-import PL.Test.MatchArg.Union
-import PL.Test.MatchArg.Binding
+import PL.Test.Parsing.Pattern
+import PL.Test.Pattern
+import PL.Test.Pattern
+import PL.Test.PatternTestCase
+import PL.Test.Pattern.Bind
+import PL.Test.Pattern.Sum
+import PL.Test.Pattern.Product
+import PL.Test.Pattern.Union
+import PL.Test.Pattern.Binding
 import PL.Test.Source
+import PL.Pattern
 
 import PLLispy
-import PLLispy.Test.Sources.MatchArg
+import PLLispy.Test.Sources.Pattern
 import PLLispy.Expr
 import PLLispy.Type
-import PLLispy.MatchArg
+import PLLispy.Pattern
 import PLLispy.Level
 
 import PLParser
@@ -47,7 +48,7 @@ import Control.Monad
 
 import Test.Hspec
 
--- Test Case analysis matchargs parse, reduce and type check from example
+-- Test Case analysis patterns parse, reduce and type check from example
 -- sources
 spec
   :: Spec
@@ -58,10 +59,10 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms =
   describe "There must be some input that parses all key programs" $
-    parsesToMatchArgsSpec matchArgTestCases lispyParser ppMatchArg (ppError ppType)
+    parsesToPatternsSpec patternTestCases lispyParser ppPattern (ppError ppPattern ppType)
   where
-    matchArgTestCases :: Map.Map Text.Text MatchArgTestCase
-    matchArgTestCases = mkMatchArgTestCases sources
+    patternTestCases :: Map.Map Text.Text PatternTestCase
+    patternTestCases = mkPatternTestCases sources
 
     typeGrammar :: Grammar CommentedType
     typeGrammar = top $ typ tyVar
@@ -69,20 +70,20 @@ testKeyPrograms =
     ppType :: TypeFor DefaultPhase -> Doc
     ppType = fromMaybe mempty . pprint (toPrinter typeGrammar) . addTypeComments
 
-    matchArgGrammar :: Grammar CommentedMatchArg
-    matchArgGrammar = top $ matchArg var tyVar
+    patternGrammar :: Grammar CommentedPattern
+    patternGrammar = top $ pattern var tyVar
 
-    ppMatchArg :: MatchArgFor DefaultPhase -> Doc
-    ppMatchArg = fromMaybe mempty . pprint (toPrinter matchArgGrammar) . addMatchArgComments
+    ppPattern :: PatternFor DefaultPhase -> Doc
+    ppPattern = fromMaybe mempty . pprint (toPrinter patternGrammar) . addPatternComments
 
-    lispyParser :: Text.Text -> Either (Error DefaultPhase) (MatchArgFor CommentedPhase, Source)
-    lispyParser input = let p = toParser matchArgGrammar
+    lispyParser :: Text.Text -> Either (Error Type Pattern) (PatternFor CommentedPhase, Source)
+    lispyParser input = let p = toParser patternGrammar
                          in case runParser p input of
                               ParseSuccess a cursor
                                 -> Right (a, remainder cursor)
 
                               failure
-                                -> Left . EMsg . ppParseResult (fromMaybe mempty . pprint (toPrinter matchArgGrammar)) $ failure
+                                -> Left . EMsg . ppParseResult (fromMaybe mempty . pprint (toPrinter patternGrammar)) $ failure
 
     ppParseResult
       :: (a -> Doc)
@@ -127,7 +128,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = [ "?"
                                   , "(?)"
                                   ]
-        , _grammar              = matchArgGrammar
+        , _grammar              = patternGrammar
         , _shouldParse          = Just Bind
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "?"
@@ -139,8 +140,8 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = [ "0"
                                   , "(0)"
                                   ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchBinding $ VZ
+        , _grammar              = patternGrammar
+        , _shouldParse          = Just $ BindingPattern $ VZ
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "0"
         }
@@ -151,8 +152,8 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["*"
                                   ,"(*)"
                                   ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchProduct []
+        , _grammar              = patternGrammar
+        , _shouldParse          = Just EmptyProductPattern
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*"
         }
@@ -162,8 +163,8 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["* (?)"
                                   ,"(* (?))"
                                   ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchProduct [Bind]
+        , _grammar              = patternGrammar
+        , _shouldParse          = Just $ ProductPattern [Bind]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*?"
         }
@@ -173,8 +174,8 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["* (?) (?)"
                                   ,"(* (?) (?))"
                                   ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchProduct [Bind,Bind]
+        , _grammar              = patternGrammar
+        , _shouldParse          = Just $ ProductPattern [Bind,Bind]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*? ?"
         }
@@ -185,8 +186,8 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = [ "+0 (?)"
                                   , "(+0 (?))"
                                   ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchSum 0 Bind
+        , _grammar              = patternGrammar
+        , _shouldParse          = Just $ SumPattern 0 Bind
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "+0 ?"
         }
@@ -196,14 +197,14 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         { _testCase             = "Bind a singleton union"
         , _input                = [ "U (Foo) (?)"
                                   ]
-        , _grammar              = matchArgGrammar
-        , _shouldParse          = Just $ MatchUnion (Named "Foo") $ Bind
+        , _grammar              = patternGrammar
+        , _shouldParse          = Just $ UnionPattern (Named "Foo") $ Bind
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "∪Foo ?"
         }
   where
-    matchArgGrammar :: Grammar (MatchArgFor CommentedPhase)
-    matchArgGrammar = top $ matchArg var tyVar
+    patternGrammar :: Grammar (PatternFor CommentedPhase)
+    patternGrammar = top $ pattern var tyVar
 
 -- Test that some source code behaves correctly with parsing and printing
 testcase :: (Show a, Eq a) => TestCase a -> Spec

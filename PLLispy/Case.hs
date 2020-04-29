@@ -25,7 +25,7 @@ import PLGrammar
 import Reversible
 import Reversible.Iso
 
-import PLLispy.MatchArg
+import PLLispy.Pattern
 import PLLispy.CaseIso
 import PLLispy.Kind
 import PLLispy.Type
@@ -49,30 +49,30 @@ caseBody
      , ?tb :: Grammar TyVar
      )
   => Grammar CommentedExpr
-  -> Grammar (Case CommentedExpr CommentedMatchArg)
+  -> Grammar (Case CommentedExpr CommentedPattern)
 caseBody expr =
   caseAnalysisIso \$/ expr
                   \*/ alternatives [ try defaultOnly
                                    , branchesAndOptionalDefault
                                    ]
   where
-    defaultOnly :: Grammar (CaseBranches CommentedExpr CommentedMatchArg)
+    defaultOnly :: Grammar (CaseBranches CommentedExpr CommentedPattern)
     defaultOnly = defaultOnlyIso \$/ (spacePreferred */ expr)
 
-    branchesAndOptionalDefault :: Grammar (CaseBranches CommentedExpr CommentedMatchArg)
+    branchesAndOptionalDefault :: Grammar (CaseBranches CommentedExpr CommentedPattern)
     branchesAndOptionalDefault =
       branchesAndOptionalDefaultIso \$/ rmany1 (try (spacePreferred */ betweenParens (caseBranch expr)))
                                     \*/ alternatives [ try (justIso \$/ (spacePreferred */ expr))
                                                      , rpure Nothing
                                                      ]
 
-    caseAnalysisIso :: Iso (CommentedExpr,CaseBranches CommentedExpr CommentedMatchArg) (Case CommentedExpr CommentedMatchArg)
+    caseAnalysisIso :: Iso (CommentedExpr,CaseBranches CommentedExpr CommentedPattern) (Case CommentedExpr CommentedPattern)
     caseAnalysisIso = Iso
       { _forwards  = \(scrutinee, branches) -> Just (Case scrutinee branches)
       , _backwards = \(Case scrutinee branches) -> Just (scrutinee, branches)
       }
 
-    defaultOnlyIso :: Iso CommentedExpr (CaseBranches CommentedExpr CommentedMatchArg)
+    defaultOnlyIso :: Iso CommentedExpr (CaseBranches CommentedExpr CommentedPattern)
     defaultOnlyIso = Iso
       { _forwards  = Just . DefaultOnly
       , _backwards = \c -> case c of
@@ -81,7 +81,7 @@ caseBody expr =
           _ -> Nothing
       }
 
-    branchesAndOptionalDefaultIso :: Iso ([CaseBranch CommentedExpr CommentedMatchArg], Maybe CommentedExpr) (CaseBranches CommentedExpr CommentedMatchArg)
+    branchesAndOptionalDefaultIso :: Iso ([CaseBranch CommentedExpr CommentedPattern], Maybe CommentedExpr) (CaseBranches CommentedExpr CommentedPattern)
     branchesAndOptionalDefaultIso = Iso
       { _forwards  = \(neBranches,mDefault) -> Just $ CaseBranches (NE.fromList neBranches) mDefault
       , _backwards = \c -> case c of
@@ -96,7 +96,7 @@ caseBody expr =
       ,_backwards = id
       }
 
--- A single case branch is a matchArg pattern, then a result expression
+-- A single case branch is a pattern pattern, then a result expression
 -- E.G.
 -- | (?) (0)
 caseBranch
@@ -104,9 +104,9 @@ caseBranch
      , ?tb :: Grammar TyVar
      )
   => Grammar CommentedExpr
-  -> Grammar (CaseBranch CommentedExpr CommentedMatchArg)
+  -> Grammar (CaseBranch CommentedExpr CommentedPattern)
 caseBranch exprI =
   (textIs "|") */                                        -- A token bar character followed by
-  (caseBranchIso \$/ (spaceAllowed   */ (sub matchArgI)) -- a matchArg to match the expression
+  (caseBranchIso \$/ (spaceAllowed   */ (sub patternI)) -- a pattern to match the expression
                  \*/ (spacePreferred */ exprI))          -- and the resulting expression if the match succeeds.
 

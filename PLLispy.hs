@@ -17,7 +17,7 @@ module PLLispy
 import PLLispy.Case      as X
 import PLLispy.Expr      as X
 import PLLispy.Kind      as X
-import PLLispy.MatchArg  as X
+import PLLispy.Pattern   as X
 import PLLispy.Type      as X
 
 import PLGrammar

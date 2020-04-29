@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-|
-Module      : PLLispy.Test.Sources.MatchArg
+Module      : PLLispy.Test.Sources.Pattern
 Copyright   : (c) Samuel A. Yallop, 2020
 Maintainer  : syallop@gmail.com
 Stability   : experimental
@@ -11,7 +11,7 @@ This might be used for:
 - External libraries who wish to do something with valid source code fragments,
   such as displaying examples.
 -}
-module PLLispy.Test.Sources.MatchArg
+module PLLispy.Test.Sources.Pattern
   ( sources
   )
   where
@@ -21,19 +21,19 @@ import PL.Expr
 import PL.Var
 import PL.TyVar
 import PL.Type
-import PL.Test.MatchArg
-import PL.Test.MatchArgTestCase
-import PL.Test.MatchArg.Bind
-import PL.Test.MatchArg.Sum
-import PL.Test.MatchArg.Product
-import PL.Test.MatchArg.Union
-import PL.Test.MatchArg.Binding
+import PL.Test.Pattern
+import PL.Test.PatternTestCase
+import PL.Test.Pattern.Bind
+import PL.Test.Pattern.Sum
+import PL.Test.Pattern.Product
+import PL.Test.Pattern.Union
+import PL.Test.Pattern.Binding
 
 import Data.Text
 import qualified Data.Text as Text
 
-sources :: TestMatchArgSources
-sources = TestMatchArgSources
+sources :: TestPatternSources
+sources = TestPatternSources
   { _bindTestCases    = TestBindSources
       { _bindEmptySum     = "?"
       , _bindEmptyProduct = "?"

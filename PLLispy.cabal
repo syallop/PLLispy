@@ -15,12 +15,12 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     PLLispy
-                     , PLLispy.MatchArgIso
+                     , PLLispy.PatternIso
                      , PLLispy.Expr
                      , PLLispy.KindIso
                      , PLLispy.Type
                      , PLLispy.Case
-                     , PLLispy.MatchArg
+                     , PLLispy.Pattern
                      , PLLispy.TypeIso
                      , PLLispy.ExprIso
                      , PLLispy.Kind
@@ -29,7 +29,7 @@ library
 
                      , PLLispy.Test.Sources.Expr
                      , PLLispy.Test.Sources.Type
-                     , PLLispy.Test.Sources.MatchArg
+                     , PLLispy.Test.Sources.Pattern
   -- other-modules:       
   other-extensions:    MultiWayIf
                      , OverloadedStrings
@@ -57,7 +57,7 @@ test-suite hspec
   hs-source-dirs:    Test
 
   other-modules:     PLLispy.Test.ExprSpec
-                   , PLLispy.Test.MatchArgSpec
+                   , PLLispy.Test.PatternSpec
                    , PLLispy.Test.TypeSpec
 
   build-depends:     base >=4.7

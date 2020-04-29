@@ -17,6 +17,7 @@ import PL.Test.Parsing.Type
 import PL.Test.Type
 import PL.Test.TypeTestCase
 import PL.Test.Source
+import PL.Pattern
 
 import PLLispy
 import PLLispy.Test.Sources.Type
@@ -51,26 +52,64 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms =
   describe "There must be some input that parses all key programs" $
-    parsesToTypesSpec typeTestCases lispyParser ppType (ppError ppType)
+    parsesToTypesSpec typeTestCases lispyParser ppType (ppError ppPattern ppType)
   where
     typeTestCases :: Map.Map Text.Text TypeTestCase
     typeTestCases = mkTypeTestCases sources
 
-    ppType :: forall phase. TypeFor phase -> Doc
-    ppType = undefined
-    --ppType = fromMaybe mempty . pprint (toPrinter typeGrammar)
+    ppType :: Type -> Doc
+    ppType = fromMaybe mempty . pprint (toPrinter typeGrammar) . addTypeComments
+
+    ppPattern :: Pattern -> Doc
+    ppPattern = fromMaybe mempty . pprint (toPrinter patternGrammar) . addPatternComments
 
     typeGrammar :: Grammar CommentedType
     typeGrammar = top $ typ tyVar
 
-    lispyParser :: Text.Text -> Either (Error CommentedPhase) (TypeFor CommentedPhase, Source)
+    patternGrammar :: Grammar CommentedPattern
+    patternGrammar = top $ pattern var tyVar
+
+    lispyParser :: Text.Text -> Either (Error Type Pattern) (TypeFor CommentedPhase, Source)
     lispyParser input = let p = toParser typeGrammar
                          in case runParser p input of
-                              ParseFailure _failures cursor
-                                -- TODO: Format failure into error message
-                                -> Left $ EMsg (text "failed to parse expression")
                               ParseSuccess a cursor
-                                -> Right (a,remainder cursor)
+                                -> Right (a, remainder cursor)
+
+                              failure
+                                -> Left . EMsg . ppParseResult (fromMaybe mempty . pprint (toPrinter typeGrammar)) $ failure
+
+    ppParseResult
+      :: (a -> Doc)
+      -> PLParser.ParseResult a
+      -> Doc
+    ppParseResult ppA p = case p of
+        PLParser.ParseSuccess a leftovers
+          -> text "Parsed: " <> ppA a <> text "with leftovers" <> document leftovers
+
+        PLParser.ParseFailure failures cur0
+          -> mconcat $
+               [ text "Parse failure at:"
+               , lineBreak
+
+               , indent1 $ document cur0
+               , lineBreak
+               ]
+               ++
+               if List.null failures
+                 then mempty
+                 else [ text "The failures backtracked from were:"
+                      , lineBreak
+                      , indent1 . mconcat
+                                . fmap (\(cursor,expected) -> mconcat [ document cursor
+                                                                      , document expected
+                                                                      , lineBreak
+                                                                      , lineBreak
+                                                                      ]
+                                      )
+                                . Map.toList
+                                . PLParser.collectFailures
+                                $ failures
+                      ]
 
 
 testParsePrint :: Spec

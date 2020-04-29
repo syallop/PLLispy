@@ -5,6 +5,7 @@ module PLLispy.Test.ExprSpec where
 
 import PL
 import PL.Case
+import PL.Pattern
 import PL.Commented
 import PL.Error
 import PL.Expr
@@ -59,7 +60,7 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms =
   describe "There must be some input that parses all key programs" $
-    parsesToSpec exprTestCases lispyParser ppExpr (ppError ppType)
+    parsesToSpec exprTestCases lispyParser ppExpr (ppError ppPattern ppType)
   where
     exprTestCases :: Map.Map Text.Text ExprTestCase
     exprTestCases = mkTestCases sources
@@ -70,13 +71,19 @@ testKeyPrograms =
     ppType :: TypeFor DefaultPhase -> Doc
     ppType = fromMaybe mempty . pprint (toPrinter typeGrammar) . addTypeComments
 
+    ppPattern :: PatternFor DefaultPhase -> Doc
+    ppPattern = fromMaybe mempty . pprint (toPrinter patternGrammar) . addPatternComments
+
+    patternGrammar :: Grammar CommentedPattern
+    patternGrammar = top $ pattern var tyVar
+
     exprGrammar :: Grammar CommentedExpr
     exprGrammar = top (expr var typeGrammar tyVar)
 
     ppExpr :: ExprFor DefaultPhase -> Doc
     ppExpr = fromMaybe mempty . pprint (toPrinter exprGrammar) . addComments
 
-    lispyParser :: Text.Text -> Either (Error DefaultPhase) (ExprFor CommentedPhase, Source)
+    lispyParser :: Text.Text -> Either (Error Type Pattern) (ExprFor CommentedPhase, Source)
     lispyParser input = let p = toParser exprGrammar
                          in case runParser p input of
                               ParseSuccess a cursor
@@ -176,7 +183,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"+0 (*) *"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Sum (Product []) 0 $ NE.fromList $ [ProductT []]
+        , _shouldParse          = Just $ Sum EmptyProduct 0 $ NE.fromList $ [EmptyProductT]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "+0(*) (*)"
         }
@@ -188,7 +195,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"+0 (* *) * *"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Sum (Product [Product []]) 0 $ NE.fromList $ [ProductT [ProductT []]]
+        , _shouldParse          = Just $ Sum (Product [EmptyProduct]) 0 $ NE.fromList $ [ProductT [EmptyProductT]]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "+0(*(*)) (*(*))"
         }
@@ -200,7 +207,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"(*)"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Product []
+        , _shouldParse          = Just $ EmptyProduct
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*"
         }
@@ -211,7 +218,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"(* (*))"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Product [Product []]
+        , _shouldParse          = Just $ Product [EmptyProduct]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*(*)"
         }
@@ -222,7 +229,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   , "(* (*) (*))"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Product [Product [],Product []]
+        , _shouldParse          = Just $ Product [EmptyProduct,EmptyProduct]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*(*) (*)"
         }
@@ -234,13 +241,13 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                   ,"(U (*) (*) (*))"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ Union (Product []) (ProductT []) (Set.fromList [ProductT []])
+        , _shouldParse          = Just $ Union EmptyProduct EmptyProductT (Set.fromList [EmptyProductT])
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "∪(*) (*) (*)"
         }
 
-    -- Note the 'MatchArg' patterns used in case branches are tested in
-    -- the MatchArgSpec module. These tests only cover the outer structure of
+    -- Note the 'Pattern' patterns used in case branches are tested in
+    -- the PatternSpec module. These tests only cover the outer structure of
     -- the case statement itself.
     describe "Case" $ do
       testcase $ TestCase
@@ -248,7 +255,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["CASE (0) (*)"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ CaseAnalysis $ Case (Binding $ VZ) $ DefaultOnly $ Product []
+        , _shouldParse          = Just $ CaseAnalysis $ Case (Binding $ VZ) $ DefaultOnly $ EmptyProduct
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "CASE 0 (*)"
         }
@@ -258,7 +265,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["CASE (0) (| (?) (*))"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ CaseAnalysis $ Case (Binding $ VZ) $ CaseBranches (NE.fromList [CaseBranch Bind $ Product []]) Nothing
+        , _shouldParse          = Just $ CaseAnalysis $ Case (Binding $ VZ) $ CaseBranches (NE.fromList [CaseBranch Bind $ EmptyProduct]) Nothing
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "CASE 0 (|? (*))"
         }
@@ -268,7 +275,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["CASE (0) (|(?) (*)) (*)"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ CaseAnalysis $ Case (Binding $ VZ) $ CaseBranches (NE.fromList [CaseBranch Bind $ Product []]) (Just $ Product [])
+        , _shouldParse          = Just $ CaseAnalysis $ Case (Binding $ VZ) $ CaseBranches (NE.fromList [CaseBranch Bind $ EmptyProduct]) (Just $ EmptyProduct)
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "CASE 0 (|? (*)) (*)"
         }
@@ -282,7 +289,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
                                    \)"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ CaseAnalysis $ Case (Binding $ VZ) $ CaseBranches (let b = CaseBranch Bind $ Product [] in NE.fromList [b,b]) Nothing
+        , _shouldParse          = Just $ CaseAnalysis $ Case (Binding $ VZ) $ CaseBranches (let b = CaseBranch Bind $ EmptyProduct in NE.fromList [b,b]) Nothing
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "CASE 0 (|? (*)) (|? (*))"
         }
@@ -292,7 +299,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["CASE (0) (|(?) (*)) (|(?) (*)) (*)"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just $ CaseAnalysis $ Case (Binding $ VZ) $ CaseBranches (let b = CaseBranch Bind $ Product [] in NE.fromList [b,b]) (Just $ Product [])
+        , _shouldParse          = Just $ CaseAnalysis $ Case (Binding $ VZ) $ CaseBranches (let b = CaseBranch Bind $ EmptyProduct in NE.fromList [b,b]) (Just $ EmptyProduct)
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "CASE 0 (|? (*)) (|? (*)) (*)"
         }
@@ -362,7 +369,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["*"
                                   ]
         , _grammar              = typeGrammar
-        , _shouldParse          = Just $ ProductT []
+        , _shouldParse          = Just $ EmptyProductT
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*"
         }

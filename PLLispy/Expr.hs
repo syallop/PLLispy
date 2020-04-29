@@ -180,7 +180,7 @@ caseAnalysis =
   textIs "CASE" */
   (caseIso \$/ (spaceRequired */ caseBody (sub exprI)))
   where
-    caseIso :: Iso (Case CommentedExpr CommentedMatchArg) CommentedExpr
+    caseIso :: Iso (Case CommentedExpr CommentedPattern) CommentedExpr
     caseIso = Iso
       {_forwards  = Just . CaseAnalysis
       ,_backwards = \e -> case e of

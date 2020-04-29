@@ -58,7 +58,7 @@ bindingIso = Iso
                     _ -> Nothing
   }
 
-caseAnalysisIso :: Iso (Case CommentedExpr CommentedMatchArg) CommentedExpr
+caseAnalysisIso :: Iso (Case CommentedExpr CommentedPattern) CommentedExpr
 caseAnalysisIso = Iso
   {_forwards = \caseA
                -> Just . CaseAnalysis $ caseA
