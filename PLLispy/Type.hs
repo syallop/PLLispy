@@ -1,4 +1,10 @@
-{-# LANGUAGE ScopedTypeVariables, ImplicitParams, OverloadedStrings, FlexibleContexts #-}
+{-# LANGUAGE
+    ScopedTypeVariables
+  , ImplicitParams
+  , OverloadedStrings
+  , FlexibleContexts
+  , MultiWayIf
+  #-}
 {-|
 Module      : PLLispy.Type
 Copyright   : (c) Samuel A. Yallop, 2016
@@ -52,9 +58,42 @@ tyVar =
   charIs '?' */
   (tyVarIso \$/ natural)
 
--- A name is an uppercase followed by zero or more lower case characters
+-- | A name is an uppercase followed by zero or more lower case characters.
+--
+-- - "U" is not a name as we use it to denote unions.
 name :: Grammar Text.Text
-name = nameIso \$/ upper \*/ longestMatching isLower
+name = try $ nameIso \$/ charWhen upperAlpha \*/ longestMatching lowerAlpha
+  where
+    reservedWords :: [Text.Text]
+    reservedWords = ["U"]
+
+    isntReserved :: Text.Text -> Bool
+    isntReserved = not . (`elem` reservedWords)
+
+    upperAlpha = (`elem` ['A'..'Z'])
+    lowerAlpha = (`elem` ['a'..'z'])
+
+    valid :: Char -> Text.Text -> Bool
+    valid c cs = and [isUpper c, Text.all isLower cs, isntReserved (Text.cons c cs)]
+
+    nameIso :: Iso (Char, Text.Text) Text.Text
+    nameIso = Iso
+      {_forwards = \(c,cs) -> if
+                   | valid c cs
+                    -> Just $ Text.cons c cs
+
+                   | otherwise
+                     -> Nothing
+
+      ,_backwards = \txt -> case Text.uncons txt of
+                              Just (c,cs)
+                                | valid c cs
+                                 -> Just (c,cs)
+
+                              otherwise
+                                -> Nothing
+      }
+
 
 typeName :: Grammar TypeName
 typeName = typeNameIso \$/ name
@@ -79,7 +118,7 @@ productTyp =
 unionTyp :: (?tb :: Grammar TyVar) => Grammar CommentedType
 unionTyp =
   union */
-  (unionTIso \$/ (setIso \$/ (spaceAllowed */ sepBy spacePreferred (sub typI))))
+  (unionTIso \$/ (spaceAllowed */ (setIso \$/ sepBy spacePreferred (sub typI))))
 
 -- An arrow followed by two types
 arrowTyp :: (?tb :: Grammar TyVar) => Grammar CommentedType

@@ -5,7 +5,7 @@ packages:
 - '.'
 - location:
     git: https://github.com/syallop/PLCore
-    commit: 528fda6c9eea1ea25bbbe07cc60b563da0e50fb7
+    commit: e6d38deebcfea8c732049729053239e9fc6371dc
   extra-dep: true
 - location:
     git: https://github.com/syallop/PLParser

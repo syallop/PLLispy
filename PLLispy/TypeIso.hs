@@ -25,23 +25,6 @@ import Data.Char
  - These can/ should be mechanically created, perhaps with TH/ Generics.
  -}
 
--- A Name is text with an upper case first character and lowercase remaining
--- letters.
--- TODO: Doesnt belong here.
-nameIso :: Iso (Char, Text.Text) Text.Text
-nameIso = Iso
-  {_forwards = \(c,cs) -> if
-               | isUpper c && Text.all isLower cs -> Just $ Text.cons c cs
-               | otherwise -> Nothing
-  ,_backwards = \txt -> case Text.uncons txt of
-                         Nothing
-                           -> Nothing
-
-                         Just (c,cs)
-                           | isUpper c && Text.all isLower cs -> Just (c,cs)
-                           | otherwise -> Nothing
-  }
-
 -- TODO: Doesnt belong here
 typeNameIso :: Iso Text.Text TypeName
 typeNameIso = Iso
@@ -168,7 +151,6 @@ tyVarIso = Iso
   ,_backwards = \(TyVar v) -> Just . fromEnum $ v
   }
 
--- TODO: Doesnt belong here.
 setIso :: Ord a => Iso [a] (Set.Set a)
 setIso = Iso
   {_forwards = Just . Set.fromList

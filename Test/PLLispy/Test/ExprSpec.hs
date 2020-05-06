@@ -13,6 +13,7 @@ import PL.Kind
 import PL.TyVar
 import PL.Type
 import PL.Var
+import PL.TypeCtx
 
 import PL.Test.ExprTestCase
 import PL.Test.Parsing.Expr
@@ -60,7 +61,7 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms =
   describe "There must be some input that parses all key programs" $
-    parsesToSpec exprTestCases lispyParser ppExpr (ppError ppPattern ppType)
+    parsesToSpec exprTestCases lispyParser ppExpr (ppError ppPattern ppType ppExpr (ppTypeCtx document (ppTypeInfo ppType)) ppVar ppTyVar)
   where
     exprTestCases :: Map.Map Text.Text ExprTestCase
     exprTestCases = mkTestCases sources
@@ -70,6 +71,13 @@ testKeyPrograms =
 
     ppType :: TypeFor DefaultPhase -> Doc
     ppType = fromMaybe mempty . pprint (toPrinter typeGrammar) . addTypeComments
+
+    ppVar :: Var -> Doc
+    ppVar = fromMaybe mempty . pprint (toPrinter var)
+
+    ppTyVar :: TyVar -> Doc
+    ppTyVar = fromMaybe mempty . pprint (toPrinter tyVar)
+
 
     ppPattern :: PatternFor DefaultPhase -> Doc
     ppPattern = fromMaybe mempty . pprint (toPrinter patternGrammar) . addPatternComments
@@ -83,7 +91,7 @@ testKeyPrograms =
     ppExpr :: ExprFor DefaultPhase -> Doc
     ppExpr = fromMaybe mempty . pprint (toPrinter exprGrammar) . addComments
 
-    lispyParser :: Text.Text -> Either (Error Type Pattern) (ExprFor CommentedPhase, Source)
+    lispyParser :: Text.Text -> Either (Error Expr Type Pattern TypeCtx) (ExprFor CommentedPhase, Source)
     lispyParser input = let p = toParser exprGrammar
                          in case runParser p input of
                               ParseSuccess a cursor

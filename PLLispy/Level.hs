@@ -53,7 +53,7 @@ level unambiguous ambiguous = \l -> case l of
   Top
     -> topLevel
   where
-    topLevel = alternatives $ ambiguous <> unambiguous <> [betweenParens topLevel]
+    topLevel = alternatives $ unambiguous <> ambiguous <> [betweenParens topLevel]
     subLevel = alternatives $ unambiguous <> [parensPreferred topLevel]
 
 top :: (Level -> Grammar a) -> Grammar a

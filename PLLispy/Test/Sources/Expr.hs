@@ -24,9 +24,11 @@ import PL.Type
 import PL.Test.Expr
 import PL.Test.Expr.BigLam
 import PL.Test.Expr.Boolean
+import PL.Test.Expr.Binding
 import PL.Test.Expr.Function
 import PL.Test.Expr.Maybe
 import PL.Test.Expr.Lam
+import PL.Test.Expr.List
 import PL.Test.Expr.Natural
 import PL.Test.Expr.Product
 import PL.Test.Expr.Sum
@@ -75,6 +77,35 @@ sources = TestExprSources
           \               (+1 (*) (*) (*))\n\
           \              )\n\
           \            )"
+      }
+
+  , _bindingTestCases = TestBindingSources
+      { _bindingTestCase =
+          "\"Variables are refered to by counting the number of lambda away they are\n\
+          \abstracted from. This lambda will return the Bool value it is passed\n\
+          \as it is zero bindings away.\"\n\n\
+          \λUnit 0"
+
+      , _buriedBindingTestCase =
+         "\"Variables are referenced by the number of lambdas are away they were bound.\n\
+         \These indexes are adjusted so they point to their original value when\
+         \reduction causes the number of intermediate lambdas to change.\n\
+         \In this expression the binding of 1 will become 2 under a reduction step.\"\n\n\
+         \λBool (@ (λ(-> Bool Bool) (λBool 1)) (λBool 1))"
+
+      , _doubleBuriedBindingTestCase =
+         "\"Variables are referenced by the number of lambdas are away they were bound.\n\
+         \These indexes are adjusted so they point to their original value when\
+         \reduction causes the number of intermediate lambdas to change.\n\
+         \In this expression the binding of 1 will become 3 under a reduction step.\"\n\n\
+         \λBool (@ (λ(-> Bool Bool) (λBool (λBool 2))) (λBool 1))"
+
+      , _buriedBindingsDontMoveTestCase =
+         "\"Variables are referenced by the number of lambdas are away they were bound.\n\
+         \These indexes are adjusted so they point to their original value when\
+         \reduction causes the number of intermediate lambdas to change.\n\
+         \In this expression the binding of 0 remains 0 away under a reduction step.\"\n\n\
+         \λBool (@ (λBool 0) 0)"
       }
 
   , _naturalTestCases = TestNaturalSources
@@ -147,10 +178,21 @@ sources = TestExprSources
       { _defaultNatTestCase =
           "\"Accept a value of type Maybe Nat, if it's nothing default to zero,\n\
           \otherwise unwrap the number\"\n\
-          \\\(/@Maybe Nat) (CASE 0\n\
+          \λ(/@Maybe Nat) (CASE 0\n\
           \  (| (+0 (*)) (+0 (*) (*) Nat))\n\
           \  (| (+1 ?)   (0))\n\
           \)"
+      }
+
+  , _listTestCases = TestListSources
+      { _emptyListTestCase =
+          "\"The empty list value is constructed by passing a type to this function.\n\
+          \An list value is a sum type of either:\n\
+          \ - The empty product indicating the end of the list\n\
+          \ - Or the product of:\n\
+          \   - Whatever type the list should contain\n\
+          \   - And a recursive occurance of the list of the given type.\"\n\n\
+          \ΛKIND (+0 (*) (*) (* ?0 (/@List ?0)))"
       }
   }
 
