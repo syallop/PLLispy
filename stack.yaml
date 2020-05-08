@@ -1,37 +1,22 @@
-resolver: lts-14.20
+resolver: lts-15.11
 flags:
 extra-package-dbs: []
 packages:
-- '.'
-- location:
-    git: https://github.com/syallop/PLCore
-    commit: e6d38deebcfea8c732049729053239e9fc6371dc
-  extra-dep: true
-- location:
-    git: https://github.com/syallop/PLParser
-    commit: 7adea4ba5ec67f7fee80f9903595e1ab825e313b
-  extra-dep: true
-- location:
-    git: https://github.com/syallop/PLGrammar
-    commit: 8583dfc6b56b88069fee00b9786da6f15f6d4cd0
-  extra-dep: true
-- location:
-    git: https://github.com/syallop/Reversible
-    commit: 84188a89af962716dc0534d552da715305cb0cf5
-  extra-dep: true
-- location:
-    git: https://github.com/syallop/PLLabel
-    commit: 9433cf7963e43b4df06f57939218956c3d2dacc4
-  extra-dep: true
-- location:
-    git: https://github.com/syallop/PLPrinter
-    commit: 65f4d3805c06fbbe0e4313f17a2129e5fe2187f9
-  extra-dep: true
-- location:
-    git: https://github.com/syallop/DSL-Compose.git
-    commit: 8e49641f049c586e21c36c6982f51670082e1e3f
-  extra-dep: true
+- .
 extra-deps:
-- megaparsec-7.0.4
-- parser-combinators-1.0.1
+- git: https://github.com/syallop/PLCore
+  commit: 7b79bb2dc284563c437227c06e9e8447627d7f94
+- git: https://github.com/syallop/PLParser
+  commit: cba283c6e0e286a9d3df785f3fdf652449d912cd
+- git: https://github.com/syallop/PLGrammar
+  commit: ece33dda877ed6b2199ebc6528fdc825302b3978
+- git: https://github.com/syallop/Reversible
+  commit: 84188a89af962716dc0534d552da715305cb0cf5
+- git: https://github.com/syallop/PLLabel
+  commit: a95807e7d6e3b4a22b15bac1f9791bea212ef00d
+- git: https://github.com/syallop/PLPrinter
+  commit: 29c1fc4fe5f33086bed4855e016aa56aa80264af
+- git: https://github.com/syallop/DSL-Compose.git
+  commit: 8e49641f049c586e21c36c6982f51670082e1e3f
+- pretty-tree-0.1.0.0@sha256:49b0e17008f9d30328db2bcc2958f3a7b78d154d2335c2dbaa2073e237b524ae,668
 allow-newer: true
