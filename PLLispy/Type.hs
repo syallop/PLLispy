@@ -95,12 +95,12 @@ name = try $ nameIso \$/ charWhen upperAlpha \*/ longestMatching lowerAlpha
       }
 
 
-typeName :: Grammar TypeName
-typeName = typeNameIso \$/ name
+typeNameTyp :: Grammar TypeName
+typeNameTyp = typeNameIso \$/ name
 
 -- A named type is just a name which appears in the type position
 namedTyp :: Grammar CommentedType
-namedTyp = namedIso \$/ typeName
+namedTyp = namedIso \$/ typeNameTyp
 
 -- A plus followed by zero or more types
 sumTyp :: (?tb :: Grammar TyVar) => Grammar CommentedType

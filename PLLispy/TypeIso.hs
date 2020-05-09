@@ -28,8 +28,8 @@ import Data.Char
 -- TODO: Doesnt belong here
 typeNameIso :: Iso Text.Text TypeName
 typeNameIso = Iso
-  {_forwards = \txt -> Just $ TypeName txt
-  ,_backwards = \(TypeName txt) -> Just txt
+  {_forwards = mkTypeName
+  ,_backwards = Just . typeName
   }
 
 namedIso :: Iso TypeName CommentedType
