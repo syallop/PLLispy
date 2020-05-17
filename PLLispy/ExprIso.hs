@@ -15,6 +15,7 @@ import PL.Expr hiding (appise,lamise)
 import PL.Kind
 import PL.Type
 import PL.Var
+import PL.Name
 import PL.TyVar
 
 import Data.List.NonEmpty (NonEmpty)
@@ -56,6 +57,17 @@ bindingIso = Iso
                     Binding b
                       -> Just b
                     _ -> Nothing
+  }
+
+contentBindingIso :: Iso ContentName CommentedExpr
+contentBindingIso = Iso
+  {_forwards = \c
+                -> Just . ContentBinding $ c
+  ,_backwards = \expr
+                 -> case expr of
+                      ContentBinding c
+                        -> Just c
+                      _ -> Nothing
   }
 
 caseAnalysisIso :: Iso (Case CommentedExpr CommentedPattern) CommentedExpr
