@@ -12,6 +12,8 @@ import PL.Expr
 import PL.Kind
 import PL.TyVar
 import PL.Type
+import PL.Name
+import PL.Hash
 import PL.Var
 import PL.TypeCtx
 
@@ -182,6 +184,17 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _shouldParse          = Just $ Binding $ VZ
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "0"
+        }
+
+    describe "ContentBinding" $ do
+      testcase $ TestCase
+        { _testCase             = "Simple"
+        , _input                = ["#SHA512/5x9U6wV2TtRKERLUJPdbnx8tyHPHAsban2gPAHsHHYGhVys1mDZT24WaEnVujtDepQv3nP7ff4gcqBR5hPmLxDNFC4RFHwjuxodJw56wAVQcui1dgkiky5hsYfBg7WA5o2ZFBwhtkysYVLJaDiTyHLnFeZECDtjDYpzo6cz5LxRfos6"
+                                  ]
+        , _grammar              = exprGrammar
+        , _shouldParse          = Just . ContentBinding . mkContentName . fromJust . readBase58 $ "SHA512/5x9U6wV2TtRKERLUJPdbnx8tyHPHAsban2gPAHsHHYGhVys1mDZT24WaEnVujtDepQv3nP7ff4gcqBR5hPmLxDNFC4RFHwjuxodJw56wAVQcui1dgkiky5hsYfBg7WA5o2ZFBwhtkysYVLJaDiTyHLnFeZECDtjDYpzo6cz5LxRfos6"
+        , _shouldParseLeftovers = ""
+        , _shouldPrint          = Just "#SHA512/5x9U6wV2TtRKERLUJPdbnx8tyHPHAsban2gPAHsHHYGhVys1mDZT24WaEnVujtDepQv3nP7ff4gcqBR5hPmLxDNFC4RFHwjuxodJw56wAVQcui1dgkiky5hsYfBg7WA5o2ZFBwhtkysYVLJaDiTyHLnFeZECDtjDYpzo6cz5LxRfos6"
         }
 
     describe "Sum" $ do

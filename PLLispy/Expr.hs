@@ -133,7 +133,7 @@ contentNameGrammar = contentNameIso \$/ (charIs '#' */ hashGrammar)
   where
     contentNameIso :: Iso Hash ContentName
     contentNameIso = Iso
-      { _forwards = mkContentName . HashIs
+      { _forwards = Just . mkContentName . HashIs
       , _backwards = Just . contentName
       }
 

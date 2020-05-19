@@ -5,7 +5,7 @@ packages:
 - .
 extra-deps:
 - git: https://github.com/syallop/PLCore
-  commit: b387ced255e422340fc3cc5d89682399847d21e9
+  commit: bed97f5b7f8064c93fafa8289dc2a7c872470e94
 - git: https://github.com/syallop/PLParser
   commit: cba283c6e0e286a9d3df785f3fdf652449d912cd
 - git: https://github.com/syallop/PLGrammar
