@@ -46,6 +46,7 @@ sources = TestTypeSources
 
   , _bigArrowTestCases = TestBigArrowSources
       { _simpleBigArrowTestCase = "/-> KIND Unit"
+      , _complexBigArrowTestCase = "/-> KIND ?0"
       }
 
   , _productTestCases = TestProductSources
