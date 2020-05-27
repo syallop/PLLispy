@@ -24,6 +24,7 @@ library
                      , PLLispy.TypeIso
                      , PLLispy.ExprIso
                      , PLLispy.Kind
+                     , PLLispy.Name
                      , PLLispy.CaseIso
                      , PLLispy.Level
 

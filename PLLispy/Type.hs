@@ -29,6 +29,7 @@ import Reversible.Iso
 import PLLispy.TypeIso
 import PLLispy.Kind
 import PLLispy.Level
+import PLLispy.Name
 
 import PL.Kind
 import PL.Name
@@ -157,6 +158,11 @@ typeAppTyp =
 typeBindingTyp :: Grammar TyVar -> Grammar CommentedType
 typeBindingTyp gtb = typeBindingIso \$/ gtb
 
+-- The content binding constructor is a name which references a type by its
+-- content.
+typeContentBindingTyp :: Grammar CommentedType
+typeContentBindingTyp = typeContentBindingIso \$/ contentNameGrammar
+
 -- A Commented type
 commentedTyp :: (?tb :: Grammar TyVar) => Grammar CommentedType
 commentedTyp =
@@ -187,6 +193,7 @@ typI = level unambiguousTypI ambiguousTypI
     unambiguousTypI :: [Grammar CommentedType]
     unambiguousTypI =
       [ namedTyp
+      , typeContentBindingTyp
       , typeBindingTyp ?tb
       , commentedTyp
       ]

@@ -132,6 +132,17 @@ typeBindingIso = Iso
                      _ -> Nothing
   }
 
+typeContentBindingIso :: Iso ContentName CommentedType
+typeContentBindingIso = Iso
+  {_forwards = \c
+                -> Just . TypeContentBinding $ c
+  ,_backwards = \ty
+                 -> case ty of
+                      TypeContentBinding c
+                        -> Just c
+                      _ -> Nothing
+  }
+
 commentedIso :: Iso (Comment, CommentedType) CommentedType
 commentedIso = Iso
   {_forwards = \(c,typ)
