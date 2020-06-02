@@ -4,6 +4,8 @@
   , OverloadedStrings
   , FlexibleContexts
   , MultiWayIf
+  , GADTs
+  , ConstraintKinds
   #-}
 {-|
 Module      : PLLispy.Type
@@ -13,51 +15,367 @@ Stability   : experimental
 
 A Grammar for PL.Type with a lisp-like syntax.
 -}
-module PLLispy.Type where
+module PLLispy.Type
+  (
+  -- * Concrete types
+  --
+  -- Grammar for a lispy type that depends upon grammars for things such as type
+  -- bindings, etc.
+    typ
+  , TypeGrammarDependencies (..)
+  , defaultTypeGrammarDependencies
+
+  -- * Type constructors
+  -- Grammars for alternatives in a general 'TypeFor phase' ast that defer to
+  -- implicit dependent grammars where necessary.
+  , typI
+  , arrowTyp
+  , typeBindingTyp
+  , typeContentBindingTyp
+  , namedTyp
+  , sumTyp
+  , productTyp
+  , unionTyp
+  , bigArrowTyp
+  , typeLamTyp
+  , typeAppTyp
+  , typeExtensionTyp
+
+  -- * Type extension Grammars
+  --
+  -- Grammars for specific extensions to the Type ast itself.
+  , commentedTyp
+
+  -- * Grammar Dependency options
+  --
+  -- Grammars that are likely to be usd to instantiate the dependencies
+
+  -- ** Type bindings
+  , tyVar
+
+  -- ** Expr abstractions
+  , kind
+
+  -- ** TypeContentBindings at Type level
+  , shortHash
+  , contentName
+  )
+  where
 
 import Prelude hiding (takeWhile)
 
 import Control.Applicative
 import Data.Char
+import Data.List.NonEmpty (NonEmpty)
 import Data.Maybe
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 
-import PLGrammar
-import Reversible.Iso
-
-import PLLispy.TypeIso
+import PLLispy.Type.Iso
+import PLLispy.Type.Dep
 import PLLispy.Kind
 import PLLispy.Level
 import PLLispy.Name
 
+import PLGrammar
+import Reversible.Iso
+import Reversible
+
+import PL.Commented
+import PL.Expr
+import PL.HashStore
+import PL.FixPhase
 import PL.Kind
 import PL.Name
-import PL.Commented
 import PL.TyVar
-import PL.FixPhase
-import PL.Expr
 import PL.Type hiding (arrowise)
 
-import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NE
+defaultTypeGrammarDependencies
+  :: ( TypeConstraints phase
 
-nonEmptyIso :: Iso [a] (NonEmpty a)
-nonEmptyIso = Iso
-  {_forwards = \xs -> case xs of
-                 []
-                   -> Nothing
+     , TyVar       ~ TypeBindingFor phase
+     , ContentName ~ TypeContentBindingFor phase
 
-                 (head:tail)
-                   -> Just $ head NE.:| tail
-  ,_backwards = Just . NE.toList
+     , Void ~ NamedExtension phase
+     , Void ~ ArrowExtension phase
+     , Void ~ SumTExtension phase
+     , Void ~ ProductTExtension phase
+     , Void ~ UnionTExtension phase
+     , Void ~ BigArrowExtension phase
+     , Void ~ TypeLamExtension phase
+     , Void ~ TypeAppExtension phase
+     , Void ~ TypeBindingExtension phase
+     , Void ~ TypeContentBindingExtension phase
+
+     , (Commented (TypeFor phase)) ~ TypeExtension phase
+     )
+  => TypeGrammarDependencies phase
+defaultTypeGrammarDependencies = TypeGrammarDependencies
+  { _typeBindingFor        = tyVar
+  , _typeContentBindingFor = contentNameGrammar
+
+  , _namedGrammarExtension              = voidG
+  , _arrowGrammarExtension              = voidG
+  , _sumTGrammarExtension               = voidG
+  , _productTGrammarExtension           = voidG
+  , _unionTGrammarExtension             = voidG
+  , _bigArrowGrammarExtension           = voidG
+  , _typeLamGrammarExtension            = voidG
+  , _typeAppGrammarExtension            = voidG
+  , _typeBindingGrammarExtension        = voidG
+  , _typeContentBindingGrammarExtension = voidG
+
+  , _typeGrammarExtension = commentedTyp defaultTypeGrammarDependencies
   }
 
+
+-- | The Arrow constructor takes the form:
+--
+-- ARROW TYPE TYPE
+arrowTyp
+  :: forall phase
+   . ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+arrowTyp =
+  arrow */ (arrowIso \$/ arrowExtension
+                     \*/ (spaceAllowed */ sub typI)
+                     \*/ (spacePreferred */ sub typI))
+
+-- | The type binding constructor is some form of reference to a value bound by
+-- a type abstraction. It is likely to be an index of a name.
+--
+-- It defers to the implicit type binding grammar.
+typeBindingTyp
+  :: ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+typeBindingTyp =
+  typeBindingIso \$/ typeBindingExtension
+                 \*/ typeBinding
+
+-- | The type content binding constructor is a name which references a type by
+-- it's content.
+--
+-- It defers to the implicit type content binding grammar.
+typeContentBindingTyp
+  :: ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+typeContentBindingTyp =
+  typeContentBindingIso \$/ typeContentBindingExtension
+                        \*/ typeContentBinding
+
+-- | The Named type constructor takes the form:
+--
+-- UPPER CHARACTERS*
+namedTyp
+  :: ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+namedTyp =
+  namedIso \$/ namedExtension
+           \*/ typeNameTyp
+
+-- | The Sum type constructor takes the form:
+--
+-- PLUS TYPE+
+sumTyp
+  :: ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+sumTyp =
+  plus */
+  (sumTIso \$/ sumTExtension
+           \*/ (spaceAllowed */ (sepBy1 spacePreferred $ sub typI)))
+
+-- | The Product type constructor takes the form:
+--
+-- PRODUCT TYPE*
+productTyp
+  :: ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+productTyp =
+  star */
+  (productTIso \$/ productTExtension
+               \*/ (spaceAllowed */ sepBy spacePreferred (sub typI)))
+
+-- | The Union type constructor takes the form:
+--
+-- UNION TYPE*
+unionTyp
+  :: ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+unionTyp =
+  union */
+  (unionTIso \$/ unionTExtension
+             \*/ (spaceAllowed */ (setIso \$/ sepBy spacePreferred (sub typI))))
+
+-- | The Big Arrow type constructor takes the form:
+--
+-- BIGARROW kind TYPE
+bigArrowTyp
+  :: ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+bigArrowTyp =
+  bigArrow */ (bigArrowIso \$/ bigArrowExtension
+                           \*/ (spaceAllowed */ parensKind)
+                           \*/ (spacePreferred */ sub typI))
+  where
+    -- TODO:
+    -- - Better ascii symbol
+    -- - Unicode symbol
+    -- If Lambda       '\'  has type '->'
+    -- Then BigLambda  '/\' has type '/->'
+    bigArrow = textIs "/->"
+
+-- | The Type Lambda type constructor takes the form:
+--
+-- BIGLAMBDA kind TYPE
+typeLamTyp
+  :: ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+typeLamTyp =
+  bigLambda */ (typeLamIso \$/ typeLamExtension
+                           \*/ (spaceAllowed */ (parensPreferred kindAbs))
+                           \*/ (spacePreferred */ sub typI))
+
+-- | The Type App type constructor takes the form:
+--
+-- BIGAPP TYPE TYPE
+typeAppTyp
+  :: ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+typeAppTyp =
+  bigApp */ (typeAppIso \$/ typeAppExtension
+                        \*/ (spaceAllowed */ sub typI)
+                        \*/ (spacePreferred */ sub typI))
+  where
+    bigApp = textIs "/@"
+
+-- | Defer to the implicit Grammar for type extensions.
+typeExtensionTyp
+  :: ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+typeExtensionTyp =
+  typeExtensionIso \$/ typeExtension
+
+-- | A Commented Type as the type extension constructor takes the form:
+--
+-- '"' COMMENT '"' TYPE
+commentedTyp
+  :: TypeConstraints phase
+  => TypeGrammarDependencies phase
+  -> Grammar (Commented (TypeFor phase))
+commentedTyp tDep =
+  charIs '"' */
+  (commentedTypeIso \$/ (commentText \* charIs '"')
+                    \*/ (spaceAllowed */ sub (typ tDep))
+  )
+  where
+    commentText :: Grammar Comment
+    commentText = commentTextIso \$/ longestMatching isCommentChar
+
+    -- TODO: Use a better character class here.
+    isCommentChar :: Char -> Bool
+    isCommentChar c = c /= '\"'
+
+    commentTextIso :: Iso Text.Text Comment
+    commentTextIso = Iso
+      {_forwards  = Just . Comment
+      ,_backwards = \(Comment t) -> Just t
+      }
+
+-- | tyVar can be used as a types binding.
+--
+-- It refers to a bound value by counting back to the type lambda which
+-- abstracted it. It takes the form of a natural number E.G.:
+--
+-- ?0,?1,?2,...
 tyVar
   :: Grammar TyVar
 tyVar =
   charIs '?' */
   (tyVarIso \$/ natural)
+
+shortHash
+  :: Grammar ShortHash
+shortHash = undefined
+
+-- | Parse a type given grammar dependencies for things such as:
+-- - Type bindings (E.G. tyVar)
+--
+-- and a level signifier.
+--
+-- Top-level types prefer not to be surrounded by parenthesis.
+--
+-- Nested sub-types will prefer to be surrounded by parenthesis unless the
+-- specific sub-type is unambgiuous (like a single integer type variable
+-- binding)
+typ
+  :: TypeConstraints phase
+  => TypeGrammarDependencies phase
+  -> Level
+  -> Grammar (TypeFor phase)
+typ typeGrammarDependencies level =
+  let ?typeGrammarDependencies = typeGrammarDependencies
+   in typI level
+
+typI
+  :: forall phase
+   . ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Level
+  -> Grammar (TypeFor phase)
+typI = level unambiguousTypI ambiguousTypI
+  where
+    unambiguousTypI :: [Grammar (TypeFor phase)]
+    unambiguousTypI =
+      [ namedTyp
+      , typeContentBindingTyp
+      , typeBindingTyp
+      , typeExtensionTyp
+      --, commentedTyp
+      ]
+
+    ambiguousTypI :: [Grammar (TypeFor phase)]
+    ambiguousTypI =
+      [ typeLamTyp
+      , typeAppTyp
+      , arrowTyp
+      , sumTyp
+      , productTyp
+      , unionTyp
+      , bigArrowTyp
+      ]
+
+
+
+
+
+{- Misc -}
+
+typeNameTyp :: Grammar TypeName
+typeNameTyp = typeNameIso \$/ name
 
 -- | A name is an uppercase followed by zero or more lower case characters.
 --
@@ -95,121 +413,17 @@ name = try $ nameIso \$/ charWhen upperAlpha \*/ longestMatching lowerAlpha
                                 -> Nothing
       }
 
+voidG :: Grammar Void
+voidG = rpure void -- This wont work?
 
-typeNameTyp :: Grammar TypeName
-typeNameTyp = typeNameIso \$/ name
+nonEmptyIso :: Iso [a] (NonEmpty a)
+nonEmptyIso = Iso
+  {_forwards = \xs -> case xs of
+                 []
+                   -> Nothing
 
--- A named type is just a name which appears in the type position
-namedTyp :: Grammar CommentedType
-namedTyp = namedIso \$/ typeNameTyp
+                 (head:tail)
+                   -> Just $ head NE.:| tail
+  ,_backwards = Just . NE.toList
+  }
 
--- A plus followed by zero or more types
-sumTyp :: (?tb :: Grammar TyVar) => Grammar CommentedType
-sumTyp =
-  plus */
-  (sumTIso \$/ (spaceAllowed */ (sepBy1 spacePreferred $ sub typI)))
-
--- A star followed by zero or more types
-productTyp :: (?tb :: Grammar TyVar) => Grammar CommentedType
-productTyp =
-  star */
-  (productTIso \$/ (spaceAllowed */ sepBy spacePreferred (sub typI)))
-
--- A union followed by zero or more types
-unionTyp :: (?tb :: Grammar TyVar) => Grammar CommentedType
-unionTyp =
-  union */
-  (unionTIso \$/ (spaceAllowed */ (setIso \$/ sepBy spacePreferred (sub typI))))
-
--- An arrow followed by two types
-arrowTyp :: (?tb :: Grammar TyVar) => Grammar CommentedType
-arrowTyp =
-  arrow */ (arrowIso \$/ (spaceAllowed */ sub typI)
-                     \*/ (spacePreferred */ sub typI))
-
--- A big arrow followed by a Kind and a Type
-bigArrowTyp :: (?tb :: Grammar TyVar) => Grammar CommentedType
-bigArrowTyp =
-  bigArrow */ (bigArrowIso \$/ (spaceAllowed */ parensKind)
-                           \*/ (spacePreferred */ sub typI))
-  where
-    -- TODO:
-    -- - Better ascii symbol
-    -- - Unicode symbol
-    -- If Lambda       '\'  has type '->'
-    -- Then BigLambda  '/\' has type '/->'
-    bigArrow = textIs "/->"
-
--- A type-lambda followed by an abstracted kind, then a type
-typeLamTyp :: (?tb :: Grammar TyVar) => Grammar CommentedType
-typeLamTyp =
-  bigLambda */ (typeLamIso \$/ (spaceAllowed */ (parensPreferred kindAbs))
-                           \*/ (spacePreferred */ sub typI))
-
--- An type-app followed by two types
-typeAppTyp :: (?tb :: Grammar TyVar) => Grammar CommentedType
-typeAppTyp =
-  bigApp */ (typeAppIso \$/ (spaceAllowed */ sub typI)
-                        \*/ (spacePreferred */ sub typI))
-  where
-    bigApp = textIs "/@"
-
--- Given a parser for the type of binding used in types, parse a type binding
-typeBindingTyp :: Grammar TyVar -> Grammar CommentedType
-typeBindingTyp gtb = typeBindingIso \$/ gtb
-
--- The content binding constructor is a name which references a type by its
--- content.
-typeContentBindingTyp :: Grammar CommentedType
-typeContentBindingTyp = typeContentBindingIso \$/ contentNameGrammar
-
--- A Commented type
-commentedTyp :: (?tb :: Grammar TyVar) => Grammar CommentedType
-commentedTyp =
-  charIs '"' */
-  (commentedIso \$/ (commentText \* charIs '"')
-                \*/ (spaceAllowed */ sub typI)
-  )
-  where
-    commentText :: Grammar Comment
-    commentText = commentTextIso \$/ longestMatching isCommentChar
-
-    -- TODO: Use a better character class here.
-    isCommentChar :: Char -> Bool
-    isCommentChar c = c /= '\"'
-
-    commentTextIso :: Iso Text.Text Comment
-    commentTextIso = Iso
-      {_forwards  = Just . Comment
-      ,_backwards = \(Comment t) -> Just t
-      }
-
-typI
-  :: (?tb :: Grammar TyVar)
-  => Level
-  -> Grammar CommentedType
-typI = level unambiguousTypI ambiguousTypI
-  where
-    unambiguousTypI :: [Grammar CommentedType]
-    unambiguousTypI =
-      [ namedTyp
-      , typeContentBindingTyp
-      , typeBindingTyp ?tb
-      , commentedTyp
-      ]
-
-    ambiguousTypI :: [Grammar CommentedType]
-    ambiguousTypI =
-      [ typeLamTyp
-      , typeAppTyp
-      , arrowTyp
-      , sumTyp
-      , productTyp
-      , unionTyp
-      , bigArrowTyp
-      ]
-
-typ :: Grammar TyVar
-    -> Level
-    -> Grammar CommentedType
-typ tb = let ?tb = tb in typI

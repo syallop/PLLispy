@@ -1,7 +1,9 @@
 {-# LANGUAGE
     OverloadedStrings
   , FlexibleInstances
+  , FlexibleContexts
   , RankNTypes
+  , TypeFamilies
   #-}
 module PLLispy.Test.TypeSpec where
 
@@ -13,15 +15,19 @@ import PL.TyVar
 import PL.Error
 import PL.Commented
 import PL.TypeCtx
+import PL.FixPhase
+import PL.Name
 
 import PL.Test.Parsing.Type
 import PL.Test.Type
 import PL.Test.TypeTestCase
 import PL.Test.Source
 import PL.Pattern
+import PL.HashStore
 
 import PLLispy
 import PLLispy.Test.Sources.Type
+import PLLispy.Test.ExprSpec
 import PLLispy.Expr
 import PLLispy.Type
 import PLLispy.Type
@@ -53,43 +59,19 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms =
   describe "There must be some input that parses all key programs" $
-    parsesToTypesSpec typeTestCases lispyParser ppType (ppError ppPattern ppType ppExpr (ppTypeCtx document (ppTypeInfo ppType)) ppVar ppTyVar)
+    parsesToTypesSpec typeTestCases lispyParser (ppTestType . addTypeComments) ppTestError
   where
     typeTestCases :: Map.Map Text.Text TypeTestCase
     typeTestCases = mkTypeTestCases sources
 
-    ppType :: Type -> Doc
-    ppType = fromMaybe mempty . pprint (toPrinter typeGrammar) . addTypeComments
-
-    ppExpr :: Expr -> Doc
-    ppExpr = fromMaybe mempty . pprint (toPrinter exprGrammar) . addComments
-
-    ppPattern :: Pattern -> Doc
-    ppPattern = fromMaybe mempty . pprint (toPrinter patternGrammar) . addPatternComments
-
-    typeGrammar :: Grammar CommentedType
-    typeGrammar = top $ typ tyVar
-
-    exprGrammar :: Grammar CommentedExpr
-    exprGrammar = top (expr var typeGrammar tyVar)
-
-    patternGrammar :: Grammar CommentedPattern
-    patternGrammar = top $ pattern var tyVar
-
-    ppVar :: Var -> Doc
-    ppVar = fromMaybe mempty . pprint (toPrinter var)
-
-    ppTyVar :: TyVar -> Doc
-    ppTyVar = fromMaybe mempty . pprint (toPrinter tyVar)
-
     lispyParser :: Text.Text -> Either (Error Expr Type Pattern TypeCtx) (TypeFor CommentedPhase, Source)
-    lispyParser input = let p = toParser typeGrammar
+    lispyParser input = let p = toParser lispyType
                          in case runParser p input of
                               ParseSuccess a cursor
                                 -> Right (a, remainder cursor)
 
                               failure
-                                -> Left . EMsg . ppParseResult (fromMaybe mempty . pprint (toPrinter typeGrammar)) $ failure
+                                -> Left . EMsg . ppParseResult (fromMaybe mempty . pprint (toPrinter lispyType)) $ failure
 
     ppParseResult
       :: (a -> Doc)
@@ -124,14 +106,10 @@ testKeyPrograms =
                                 $ failures
                       ]
 
-
 testParsePrint :: Spec
 testParsePrint = describe "Lispy specific parse-print behaves" $ do
   describe "Types" $ do
     it "Any tests" pending
-  where
-    typeGrammar :: Grammar CommentedType
-    typeGrammar = top $ typ tyVar
 
 -- Test that some source code behaves correctly with parsing and printing
 testcase :: (Show a, Eq a) => TestCase a -> Spec

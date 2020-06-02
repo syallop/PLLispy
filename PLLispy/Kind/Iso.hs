@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiWayIf, OverloadedStrings #-}
-module PLLispy.KindIso where
+module PLLispy.Kind.Iso where
 
 import PLGrammar
 import Reversible.Iso

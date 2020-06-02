@@ -13,7 +13,7 @@ import Control.Applicative
 
 import PL.Kind
 
-import PLLispy.KindIso
+import PLLispy.Kind.Iso
 import PLLispy.Level
 
 import PLGrammar

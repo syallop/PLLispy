@@ -28,6 +28,7 @@ import PL.Pattern
 
 import PLLispy
 import PLLispy.Test.Sources.Pattern
+import PLLispy.Test.ExprSpec
 import PLLispy.Expr
 import PLLispy.Type
 import PLLispy.Pattern
@@ -60,43 +61,19 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms =
   describe "There must be some input that parses all key programs" $
-    parsesToPatternsSpec patternTestCases lispyParser ppPattern (ppError ppPattern ppType ppExpr (ppTypeCtx document (ppTypeInfo ppType)) ppVar ppTyVar)
+    parsesToPatternsSpec patternTestCases lispyParser (ppTestPattern . addPatternComments) ppTestError
   where
     patternTestCases :: Map.Map Text.Text PatternTestCase
     patternTestCases = mkPatternTestCases sources
 
-    typeGrammar :: Grammar CommentedType
-    typeGrammar = top $ typ tyVar
-
-    ppType :: TypeFor DefaultPhase -> Doc
-    ppType = fromMaybe mempty . pprint (toPrinter typeGrammar) . addTypeComments
-
-    ppExpr :: Expr -> Doc
-    ppExpr = fromMaybe mempty . pprint (toPrinter exprGrammar) . addComments
-
-    exprGrammar :: Grammar CommentedExpr
-    exprGrammar = top (expr var typeGrammar tyVar)
-
-    ppVar :: Var -> Doc
-    ppVar = fromMaybe mempty . pprint (toPrinter var)
-
-    ppTyVar :: TyVar -> Doc
-    ppTyVar = fromMaybe mempty . pprint (toPrinter tyVar)
-
-    patternGrammar :: Grammar CommentedPattern
-    patternGrammar = top $ pattern var tyVar
-
-    ppPattern :: PatternFor DefaultPhase -> Doc
-    ppPattern = fromMaybe mempty . pprint (toPrinter patternGrammar) . addPatternComments
-
     lispyParser :: Text.Text -> Either (Error Expr Type Pattern TypeCtx) (PatternFor CommentedPhase, Source)
-    lispyParser input = let p = toParser patternGrammar
+    lispyParser input = let p = toParser lispyPattern
                          in case runParser p input of
                               ParseSuccess a cursor
                                 -> Right (a, remainder cursor)
 
                               failure
-                                -> Left . EMsg . ppParseResult (fromMaybe mempty . pprint (toPrinter patternGrammar)) $ failure
+                                -> Left . EMsg . ppParseResult (fromMaybe mempty . pprint (toPrinter lispyPattern)) $ failure
 
     ppParseResult
       :: (a -> Doc)
@@ -217,7 +194,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         }
   where
     patternGrammar :: Grammar (PatternFor CommentedPhase)
-    patternGrammar = top $ pattern var tyVar
+    patternGrammar = lispyPattern
 
 -- Test that some source code behaves correctly with parsing and printing
 testcase :: (Show a, Eq a) => TestCase a -> Spec

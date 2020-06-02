@@ -4,6 +4,7 @@
   , OverloadedStrings
   , RankNTypes
   , ScopedTypeVariables
+  , FlexibleContexts
   #-}
 {-|
 Module      : PLLispy.Case
@@ -13,7 +14,10 @@ Stability   : experimental
 
 A Grammar for PL.Expr.Case with a lisp-like syntax.
 -}
-module PLLispy.Case where
+module PLLispy.Case
+  ( caseBody
+  )
+  where
 
 import Control.Applicative
 import Data.List.NonEmpty (NonEmpty (..),uncons)
@@ -26,7 +30,9 @@ import Reversible
 import Reversible.Iso
 
 import PLLispy.Pattern
-import PLLispy.CaseIso
+import PLLispy.Case.Iso
+import PLLispy.Expr.Dep
+import PLLispy.Pattern.Dep
 import PLLispy.Kind
 import PLLispy.Type
 import PLLispy.Level
@@ -35,6 +41,7 @@ import PL.Case
 import PL.Commented
 import PL.Expr hiding (appise,lamise)
 import PL.Kind
+import PL.Pattern
 import PL.Type
 import PL.Var
 import PL.TyVar
@@ -45,34 +52,37 @@ import PL.TyVar
 --   - A default expression
 --   - One or many branches and an optional default expression
 caseBody
-  :: ( ?eb :: Grammar Var
-     , ?tb :: Grammar TyVar
+  :: forall phase
+   . ( Implicits phase
+     , PatternImplicits phase
+     , Constraints phase
+     , PatternConstraints phase
      )
-  => Grammar CommentedExpr
-  -> Grammar (Case CommentedExpr CommentedPattern)
+  => Grammar (ExprFor phase)
+  -> Grammar (Case (ExprFor phase) (PatternFor phase))
 caseBody expr =
   caseAnalysisIso \$/ expr
                   \*/ alternatives [ try defaultOnly
                                    , branchesAndOptionalDefault
                                    ]
   where
-    defaultOnly :: Grammar (CaseBranches CommentedExpr CommentedPattern)
+    defaultOnly :: Grammar (CaseBranches (ExprFor phase) (PatternFor phase))
     defaultOnly = defaultOnlyIso \$/ (spacePreferred */ expr)
 
-    branchesAndOptionalDefault :: Grammar (CaseBranches CommentedExpr CommentedPattern)
+    branchesAndOptionalDefault :: Grammar (CaseBranches (ExprFor phase) (PatternFor phase))
     branchesAndOptionalDefault =
       branchesAndOptionalDefaultIso \$/ rmany1 (try (spacePreferred */ betweenParens (caseBranch expr)))
                                     \*/ alternatives [ try (justIso \$/ (spacePreferred */ expr))
                                                      , rpure Nothing
                                                      ]
 
-    caseAnalysisIso :: Iso (CommentedExpr,CaseBranches CommentedExpr CommentedPattern) (Case CommentedExpr CommentedPattern)
+    caseAnalysisIso :: Iso (ExprFor phase, CaseBranches (ExprFor phase) (PatternFor phase)) (Case (ExprFor phase) (PatternFor phase))
     caseAnalysisIso = Iso
       { _forwards  = \(scrutinee, branches) -> Just (Case scrutinee branches)
       , _backwards = \(Case scrutinee branches) -> Just (scrutinee, branches)
       }
 
-    defaultOnlyIso :: Iso CommentedExpr (CaseBranches CommentedExpr CommentedPattern)
+    defaultOnlyIso :: Iso (ExprFor phase) (CaseBranches (ExprFor phase) (PatternFor phase))
     defaultOnlyIso = Iso
       { _forwards  = Just . DefaultOnly
       , _backwards = \c -> case c of
@@ -81,7 +91,7 @@ caseBody expr =
           _ -> Nothing
       }
 
-    branchesAndOptionalDefaultIso :: Iso ([CaseBranch CommentedExpr CommentedPattern], Maybe CommentedExpr) (CaseBranches CommentedExpr CommentedPattern)
+    branchesAndOptionalDefaultIso :: Iso ([CaseBranch (ExprFor phase) (PatternFor phase)], Maybe (ExprFor phase)) (CaseBranches (ExprFor phase) (PatternFor phase))
     branchesAndOptionalDefaultIso = Iso
       { _forwards  = \(neBranches,mDefault) -> Just $ CaseBranches (NE.fromList neBranches) mDefault
       , _backwards = \c -> case c of
@@ -96,17 +106,14 @@ caseBody expr =
       ,_backwards = id
       }
 
--- A single case branch is a pattern pattern, then a result expression
--- E.G.
--- | (?) (0)
-caseBranch
-  :: ( ?eb :: Grammar Var
-     , ?tb :: Grammar TyVar
-     )
-  => Grammar CommentedExpr
-  -> Grammar (CaseBranch CommentedExpr CommentedPattern)
-caseBranch exprI =
-  (textIs "|") */                                        -- A token bar character followed by
-  (caseBranchIso \$/ (spaceAllowed   */ (sub patternI)) -- a pattern to match the expression
-                 \*/ (spacePreferred */ exprI))          -- and the resulting expression if the match succeeds.
+    -- A single case branch is a pattern pattern, then a result expression
+    -- E.G.
+    -- | (?) (0)
+    caseBranch
+      :: Grammar (ExprFor phase)
+      -> Grammar (CaseBranch (ExprFor phase) (PatternFor phase))
+    caseBranch exprI =
+      (textIs "|") */
+      (caseBranchIso \$/ (spaceAllowed   */ (sub patternI))
+                     \*/ (spacePreferred */ exprI))
 

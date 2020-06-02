@@ -1,4 +1,10 @@
-{-# LANGUAGE RankNTypes, OverloadedStrings, GADTs #-}
+{-# LANGUAGE
+    RankNTypes
+  , OverloadedStrings
+  , GADTs
+  , FlexibleContexts
+  , ScopedTypeVariables
+  #-}
 {-|
 Module      : PLLispy
 Copyright   : (c) Samuel A. Yallop, 2016
@@ -11,6 +17,10 @@ module PLLispy
   ( module X
   , toParser
   , toPrinter
+
+  , lispyExpr
+  , lispyType
+  , lispyPattern
   )
   where
 
@@ -19,6 +29,10 @@ import PLLispy.Expr      as X
 import PLLispy.Kind      as X
 import PLLispy.Pattern   as X
 import PLLispy.Type      as X
+import PLLispy.Level     as X
+import PLLispy.Expr.Dep  as X
+import PLLispy.Type.Dep  as X
+import PLLispy.Pattern.Dep  as X
 
 import PLGrammar
 import PLLabel
@@ -28,6 +42,15 @@ import PLPrinter
 import PLParser
 import PLParser.Cursor
 import PLLabel
+
+import PL.Expr
+import PL.Var
+import PL.Type
+import PL.FixPhase
+import PL.Name
+import PL.Pattern
+import PL.TyVar
+import PL.Commented
 
 import qualified PLGrammar as G
 import qualified PLParser  as P
@@ -42,6 +65,92 @@ import Data.Char
 import Control.Applicative
 import Control.Monad
 import Data.Monoid
+
+{-
+lispyExpr
+  :: forall phase
+   . ( Show (ExprFor phase)
+     , Show (TypeFor phase)
+     , Show (PatternFor phase)
+     , Ord (ExprFor phase)
+     , Ord (TypeFor phase)
+     , Ord (PatternFor phase)
+
+     , Var             ~ BindingFor phase
+     , ContentName     ~ ContentBindingFor phase
+     , (TypeFor phase) ~ AbstractionFor phase
+     , TyVar           ~ TypeBindingFor phase
+     , ContentName     ~ TypeContentBindingFor phase
+
+     , Void ~ LamExtension phase
+     , Void ~ AppExtension phase
+     , Void ~ BindingExtension phase
+     , Void ~ ContentBindingExtension phase
+     , Void ~ CaseAnalysisExtension phase
+     , Void ~ SumExtension phase
+     , Void ~ ProductExtension phase
+     , Void ~ UnionExtension phase
+     , Void ~ BigLamExtension phase
+     , Void ~ BigAppExtension phase
+
+     , Void ~ NamedExtension phase
+     , Void ~ ArrowExtension phase
+     , Void ~ SumTExtension phase
+     , Void ~ ProductTExtension phase
+     , Void ~ UnionTExtension phase
+     , Void ~ BigArrowExtension phase
+     , Void ~ TypeLamExtension phase
+     , Void ~ TypeAppExtension phase
+     , Void ~ TypeBindingExtension phase
+     , Void ~ TypeContentBindingExtension phase
+
+     , (Commented (ExprFor phase)) ~ ExprExtension phase
+     , (Commented (TypeFor phase)) ~ TypeExtension phase
+     , (Commented (PatternFor phase)) ~ PatternExtension phase
+     )
+  => Grammar (ExprFor phase)
+-}
+lispyExpr :: Grammar (ExprFor CommentedPhase)
+lispyExpr = top $ expr exprDeps typeDeps patternDeps
+  where
+    exprDeps :: GrammarDependencies CommentedPhase
+    exprDeps = defaultGrammarDependencies
+
+    typeDeps :: TypeGrammarDependencies CommentedPhase
+    typeDeps = defaultTypeGrammarDependencies
+
+    patternDeps :: PatternGrammarDependencies CommentedPhase
+    patternDeps = defaultPatternGrammarDependencies
+
+{-
+lispyType
+  :: forall phase
+   . ( TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+-}
+lispyType :: Grammar (TypeFor CommentedPhase)
+lispyType = top $ typ typeDeps
+  where
+    typeDeps :: TypeGrammarDependencies CommentedPhase
+    typeDeps = defaultTypeGrammarDependencies
+
+{-
+lispyPattern
+  :: forall phase
+   . ( PatternConstraints phase
+     )
+  => Grammar (PatternFor phase)
+-}
+lispyPattern :: Grammar (PatternFor CommentedPhase)
+lispyPattern = top $ pattern patternDeps typeDeps
+  where
+    patternDeps :: PatternGrammarDependencies CommentedPhase
+    patternDeps = defaultPatternGrammarDependencies
+
+    typeDeps :: TypeGrammarDependencies CommentedPhase
+    typeDeps = defaultTypeGrammarDependencies
+
 
 -- | Convert a Grammar to a Parser that accepts it.
 toParser :: G.Grammar a -> Parser a

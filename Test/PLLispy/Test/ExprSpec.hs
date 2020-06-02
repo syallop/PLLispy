@@ -1,7 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE RankNTypes #-}
-module PLLispy.Test.ExprSpec where
+module PLLispy.Test.ExprSpec
+  ( -- Test PL expressions can be parsed from some lispy source and that the parsing-printing has roundtrip properties
+    spec
+
+   -- Misc utilities used for testing that other *Spec modules would like to
+   -- resuse.
+  , TestExpr
+  , TestType
+  , TestPattern
+  , TestTypeCtx
+  , ppTestExpr
+  , ppTestType
+  , ppTestPattern
+  , ppVar
+  , ppTyVar
+  , ppTestError
+  )
+  where
 
 import PL
 import PL.Case
@@ -53,6 +70,35 @@ import qualified Data.List as List
 
 import Test.Hspec
 
+type TestExpr    = ExprFor    CommentedPhase
+type TestType    = TypeFor    CommentedPhase
+type TestPattern = PatternFor CommentedPhase
+type TestTypeCtx = TypeCtxFor CommentedPhase
+
+ppTestExpr :: TestExpr -> Doc
+ppTestExpr = fromMaybe mempty . pprint (toPrinter lispyExpr)
+
+ppTestType :: TestType -> Doc
+ppTestType = fromMaybe mempty . pprint (toPrinter lispyType)
+
+ppTestPattern :: TestPattern -> Doc
+ppTestPattern = fromMaybe mempty . pprint (toPrinter lispyPattern)
+
+ppVar :: Var -> Doc
+ppVar = fromMaybe mempty . pprint (toPrinter var)
+
+ppTyVar :: TyVar -> Doc
+ppTyVar = fromMaybe mempty . pprint (toPrinter tyVar)
+
+ppTestError :: Error Expr Type Pattern TypeCtx -> Doc
+ppTestError = ppError (ppTestPattern . addPatternComments)
+                      (ppTestType . addTypeComments)
+                      (ppTestExpr . addComments)
+                      (ppTypeCtx document (ppTypeInfo (ppTestType . addTypeComments)))
+                      ppVar
+                      ppTyVar
+
+
 -- Test expressions parse, reduce and type check from example sources
 spec
   :: Spec
@@ -63,44 +109,19 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms =
   describe "There must be some input that parses all key programs" $
-    parsesToSpec exprTestCases lispyParser ppExpr (ppError ppPattern ppType ppExpr (ppTypeCtx document (ppTypeInfo ppType)) ppVar ppTyVar)
+    parsesToSpec exprTestCases lispyParser (ppTestExpr . addComments) ppTestError
   where
     exprTestCases :: Map.Map Text.Text ExprTestCase
     exprTestCases = mkTestCases sources
 
-    typeGrammar :: Grammar CommentedType
-    typeGrammar = top $ typ tyVar
-
-    ppType :: TypeFor DefaultPhase -> Doc
-    ppType = fromMaybe mempty . pprint (toPrinter typeGrammar) . addTypeComments
-
-    ppVar :: Var -> Doc
-    ppVar = fromMaybe mempty . pprint (toPrinter var)
-
-    ppTyVar :: TyVar -> Doc
-    ppTyVar = fromMaybe mempty . pprint (toPrinter tyVar)
-
-
-    ppPattern :: PatternFor DefaultPhase -> Doc
-    ppPattern = fromMaybe mempty . pprint (toPrinter patternGrammar) . addPatternComments
-
-    patternGrammar :: Grammar CommentedPattern
-    patternGrammar = top $ pattern var tyVar
-
-    exprGrammar :: Grammar CommentedExpr
-    exprGrammar = top (expr var typeGrammar tyVar)
-
-    ppExpr :: ExprFor DefaultPhase -> Doc
-    ppExpr = fromMaybe mempty . pprint (toPrinter exprGrammar) . addComments
-
     lispyParser :: Text.Text -> Either (Error Expr Type Pattern TypeCtx) (ExprFor CommentedPhase, Source)
-    lispyParser input = let p = toParser exprGrammar
+    lispyParser input = let p = toParser lispyExpr
                          in case runParser p input of
                               ParseSuccess a cursor
                                 -> Right (a,remainder cursor)
 
                               failure
-                                -> Left . EMsg . ppParseResult (fromMaybe mempty . pprint (toPrinter exprGrammar)) $ failure
+                                -> Left . EMsg . ppParseResult (fromMaybe mempty . pprint (toPrinter lispyExpr)) $ failure
     ppParseResult
       :: (a -> Doc)
       -> PLParser.ParseResult a
@@ -505,11 +526,11 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         }
 
   where
-    exprGrammar :: Grammar CommentedExpr
-    exprGrammar = top (expr var (sub $ typ tyVar) tyVar)
+    exprGrammar :: Grammar (ExprFor CommentedPhase)
+    exprGrammar = lispyExpr
 
-    typeGrammar :: Grammar CommentedType
-    typeGrammar = top $ typ tyVar
+    typeGrammar :: Grammar (TypeFor CommentedPhase)
+    typeGrammar = lispyType
 
 data TestCase a = TestCase
   { _testCase             :: Text

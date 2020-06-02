@@ -15,18 +15,21 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     PLLispy
-                     , PLLispy.PatternIso
-                     , PLLispy.Expr
-                     , PLLispy.KindIso
-                     , PLLispy.Type
                      , PLLispy.Case
-                     , PLLispy.Pattern
-                     , PLLispy.TypeIso
-                     , PLLispy.ExprIso
+                     , PLLispy.Case.Iso
+                     , PLLispy.Expr
+                     , PLLispy.Expr.Dep
+                     , PLLispy.Expr.Iso
                      , PLLispy.Kind
-                     , PLLispy.Name
-                     , PLLispy.CaseIso
+                     , PLLispy.Kind.Iso
                      , PLLispy.Level
+                     , PLLispy.Name
+                     , PLLispy.Pattern
+                     , PLLispy.Pattern.Dep
+                     , PLLispy.Pattern.Iso
+                     , PLLispy.Type
+                     , PLLispy.Type.Dep
+                     , PLLispy.Type.Iso
 
                      , PLLispy.Test.Sources.Expr
                      , PLLispy.Test.Sources.Type

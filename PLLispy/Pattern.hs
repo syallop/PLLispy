@@ -4,6 +4,8 @@
   , OverloadedStrings
   , RankNTypes
   , ScopedTypeVariables
+  , FlexibleContexts
+  , GADTs
   #-}
 {-|
 Module      : PLLispy.Pattern
@@ -11,123 +13,222 @@ Copyright   : (c) Samuel A. Yallop, 2016
 Maintainer  : syallop@gmail.com
 Stability   : experimental
 
-A Grammar for PL.Expr.Expr with a lisp-like syntax.
+A Grammar for PL.Pattern with a lisp-like syntax.
 -}
-module PLLispy.Pattern where
+module PLLispy.Pattern
+  (
+  -- * Concrete patterns
+  -- Grammar for a lispy pattern that depends upon grammars for things such as
+  -- bindings, etc.
+    pattern
+  , PatternGrammarDependencies (..)
+  , defaultPatternGrammarDependencies
+
+  -- * Pattern constructors
+  -- Grammars for alternatives in a general 'PatternFor phase' ast that defer to
+  -- implicit dependent grammars where necessary.
+  , patternI
+  , sumPattern
+  , productPattern
+  , unionPattern
+  , bindingPattern
+  , bindPattern
+  , patternExtensionPattern
+  )
+  where
 
 import Control.Applicative
 import Data.List.NonEmpty (NonEmpty (..),uncons)
+import Data.Text (Text)
+import qualified Data.List.NonEmpty
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as Set
-import qualified Data.List.NonEmpty
-import Data.Text (Text)
 
 import PLGrammar
 import Reversible
 import Reversible.Iso
 
-import PLLispy.PatternIso
 import PLLispy.Kind
 import PLLispy.Type
+import PLLispy.Name
 import PLLispy.Level
+import PLLispy.Pattern.Iso
+import PLLispy.Pattern.Dep
+import PLLispy.Type
 
 import PL.Case
 import PL.Commented
 import PL.Expr hiding (appise,lamise)
+import PL.Pattern
 import PL.Kind
+import PL.FixPhase
+import PL.TyVar
+import PL.Name
 import PL.Type
 import PL.Var
-import PL.TyVar
+
+defaultPatternGrammarDependencies
+  :: ( PatternConstraints phase
+
+     , Var   ~ BindingFor phase
+     , TyVar ~ TypeBindingFor phase
+     , ContentName ~ TypeContentBindingFor phase
+
+     , Void ~ SumPatternExtension phase
+     , Void ~ ProductPatternExtension phase
+     , Void ~ UnionPatternExtension phase
+     , Void ~ BindingPatternExtension phase
+     , Void ~ BindExtension phase
+
+     , Void ~ NamedExtension phase
+     , Void ~ ArrowExtension phase
+     , Void ~ SumTExtension phase
+     , Void ~ ProductTExtension phase
+     , Void ~ UnionTExtension phase
+     , Void ~ BigArrowExtension phase
+     , Void ~ TypeLamExtension phase
+     , Void ~ TypeAppExtension phase
+     , Void ~ TypeBindingExtension phase
+     , Void ~ TypeContentBindingExtension phase
+
+     , (Commented (PatternFor phase)) ~ PatternExtension phase
+     , (Commented (TypeFor phase)) ~ TypeExtension phase
+     )
+  => PatternGrammarDependencies phase
+defaultPatternGrammarDependencies = PatternGrammarDependencies
+  { _patternBindingFor = var
+
+  , _sumPatternGrammarExtension     = voidG
+  , _productPatternGrammarExtension = voidG
+  , _unionPatternGrammarExtension   = voidG
+  , _bindingPatternGrammarExtension = voidG
+  , _bindGrammarExtension           = voidG
+
+  , _patternGrammarExtension = commentedPattern defaultPatternGrammarDependencies defaultTypeGrammarDependencies
+  }
+
+
+-- | The Sum pattern constructor takes the form:
+--
+-- PLUS natural PATTERN
+sumPattern
+  :: ( PatternImplicits phase
+     , PatternConstraints phase
+     )
+  => Grammar (PatternFor phase)
+sumPattern =
+  plus */
+  (sumPatternIso \$/ sumPatternExtension
+                 \*/ (spaceAllowed */ natural)
+                 \*/ spacePreferred */ sub patternI)
+
+-- | The Product pattern constructor takes the form:
+--
+-- STAR PATTERN*
+productPattern
+  :: ( PatternImplicits phase
+     , PatternConstraints phase
+     )
+  => Grammar (PatternFor phase)
+productPattern =
+  star */
+  (productPatternIso \$/ productPatternExtension
+                     \*/ (spaceAllowed */ sepBy spacePreferred (sub patternI)))
+
+-- | The Union pattern constructor takes the form:
+--
+-- UNION TYPE PATTERN
+unionPattern
+  :: ( PatternImplicits phase
+     , PatternConstraints phase
+     )
+  => Grammar (PatternFor phase)
+unionPattern =
+  union */
+  (unionPatternIso \$/ unionPatternExtension
+                   \*/ (spaceAllowed   */ sub typI)
+                   \*/ (spacePreferred */ sub patternI))
+
+-- | The binding pattern constructor is some form of reference to a value bound
+-- by an expression abstraction. It is likely to be an index of a name.
+--
+-- It defers to the implicit binding grammar.
+bindingPattern
+  :: ( PatternImplicits phase
+     , PatternConstraints phase
+     )
+  => Grammar (PatternFor phase)
+bindingPattern =
+  bindingPatternIso \$/ bindingPatternExtension
+                    \*/ patternBinding
+
+-- | The Bind pattern constructor takes the form:
+--
+-- ?
+bindPattern
+  :: ( PatternImplicits phase
+     , PatternConstraints phase
+     )
+  => Grammar (PatternFor phase)
+bindPattern =
+  question */
+  (bindIso \$/ bindExtension)
+
+-- | Defer to the implicit Grammar for pattern extensions.
+patternExtensionPattern
+  :: ( PatternImplicits phase
+     , PatternConstraints phase
+     )
+  => Grammar (PatternFor phase)
+patternExtensionPattern =
+  patternExtensionIso \$/ patternExtension
+
+pattern
+  :: PatternConstraints phase
+  => PatternGrammarDependencies phase
+  -> TypeGrammarDependencies phase
+  -> Level
+  -> Grammar (PatternFor phase)
+pattern patternGrammarDependencies typeGrammarDependencies level =
+  let ?patternGrammarDependencies = patternGrammarDependencies
+      ?typeGrammarDependencies    = typeGrammarDependencies
+   in patternI level
 
 patternI
-  :: ( ?eb :: Grammar Var
-     , ?tb :: Grammar TyVar
+  :: forall phase
+   . ( PatternImplicits phase
+     , PatternConstraints phase
      )
   => Level
-  -> Grammar CommentedPattern
+  -> Grammar (PatternFor phase)
 patternI = level unambiguous ambiguous
   where
-    unambiguous :: [Grammar CommentedPattern]
+    unambiguous :: [Grammar (PatternFor phase)]
     unambiguous =
-      [ bind
+      [ bindPattern
       , bindingPattern
-      , commentedPattern
+      , patternExtensionPattern
+      --, commentedPattern
       ]
 
-    ambiguous :: [Grammar CommentedPattern]
+    ambiguous :: [Grammar (PatternFor phase)]
     ambiguous =
       [ sumPattern
       , productPattern
       , unionPattern
       ]
 
-pattern
-  :: Grammar Var
-  -> Grammar TyVar
-  -> Level
-  -> Grammar CommentedPattern
-pattern eb tb n =
-  let ?eb = eb
-      ?tb = tb
-   in patternI n
-
--- A plus followed by an index and a pattern
--- E.G.: +0 ?
-sumPattern
-  :: ( ?eb :: Grammar Var
-     , ?tb :: Grammar TyVar
-     )
-  => Grammar CommentedPattern
-sumPattern =
-  plus */                                           -- A token plus character followed by
-  (sumPatternIso \$/ (spaceAllowed */ natural)        -- the index into the sum type
-                 \*/ spacePreferred */ sub patternI) -- then the match for that type.
-
--- A star followed by zero or more patterns
-productPattern
-  :: ( ?eb :: Grammar Var
-     , ?tb :: Grammar TyVar
-     )
-  => Grammar CommentedPattern
-productPattern =
-  star */                                                                      -- A token star character followed by
-  (productPatternIso \$/ (spaceAllowed */ sepBy spacePreferred (sub patternI))) -- a match for each component of the product
-
--- A union followed by a type index and a pattern
-unionPattern
-  :: ( ?eb :: Grammar Var
-     , ?tb :: Grammar TyVar
-     )
-  => Grammar CommentedPattern
-unionPattern =
-  union */                                              -- A union character followed by
-  (unionPatternIso \$/ (spaceAllowed   */ sub typI)       -- the type index into a union type
-                   \*/ (spacePreferred */ sub patternI)) -- then the match for that type.
-
--- A var
-bindingPattern
-  :: ( ?eb :: Grammar Var
-     )
-  => Grammar CommentedPattern
-bindingPattern =
-  bindingPatternIso \$/ ?eb -- Match the var binding by the provided grammar.
-
--- A '?'
-bind :: Grammar CommentedPattern
-bind =
-  question */                 -- A question character indicates an expression is to be bound.
-  (bindIso \$/ rpure ())
 
 -- A Commented Pattern
 commentedPattern
-  :: ( ?eb :: Grammar Var
-     , ?tb :: Grammar TyVar
-     )
-  => Grammar CommentedPattern
-commentedPattern =
+  :: PatternConstraints phase
+  => PatternGrammarDependencies phase
+  -> TypeGrammarDependencies phase
+  -> Grammar (Commented (PatternFor phase))
+commentedPattern pDep tDep =
   charIs '"' */
-  (commentedIso \$/ (commentText \* charIs '"')
-                \*/ (spaceAllowed */ sub patternI)
+  (commentedPatternIso \$/ (commentText \* charIs '"')
+                       \*/ (spaceAllowed */ sub (pattern pDep tDep))
   )
   where
     commentText :: Grammar Comment
@@ -142,4 +243,9 @@ commentedPattern =
       {_forwards  = Just . Comment
       ,_backwards = \(Comment t) -> Just t
       }
+
+{- Misc -}
+
+voidG :: Grammar Void
+voidG = rpure void -- This wont work?
 

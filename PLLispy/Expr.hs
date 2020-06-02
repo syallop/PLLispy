@@ -4,6 +4,8 @@
   , OverloadedStrings
   , RankNTypes
   , ScopedTypeVariables
+  , FlexibleContexts
+  , GADTs
   #-}
 {-|
 Module      : PLLispy.Expr
@@ -11,122 +13,322 @@ Copyright   : (c) Samuel A. Yallop, 2016
 Maintainer  : syallop@gmail.com
 Stability   : experimental
 
-A Grammar for PL.Expr with a lisp-like syntax.
+A Grammar for PL.Expr with a lisp-like syntax, parameterised over grammars for
+dependencies such as bindings and abstractions as well as possible constructor
+extensions.
 -}
-module PLLispy.Expr where
+module PLLispy.Expr
+  (
+  -- * Concrete expressions
+  --
+  -- Grammar for a lispy expression that depends upon grammars for things such
+  -- as bindings, abstractions etc.
+    expr
+  , GrammarDependencies (..)
+  , defaultGrammarDependencies
+
+  -- * Expr constructors
+  -- Grammars for alternatives in a general 'ExprFor phase' ast that defer to implicit
+  -- dependent grammars where necessary.
+  , exprI
+  , lamExpr
+  , appExpr
+  , bindingExpr
+  , contentBindingExpr
+  , caseAnalysisExpr
+  , sumExpr
+  , productExpr
+  , unionExpr
+  , bigLamExpr
+  , bigAppExpr
+  , exprExtensionExpr
+
+  -- * Expr extension Grammars
+  --
+  -- Grammars for specific extensions to the Expr ast itself.
+  , commentedExpr
+
+  -- * Grammar Dependency options
+  --
+  -- Grammars that are likely to be used to instantiate the dependencies
+
+  -- ** Expr bindings
+  , var
+
+  -- ** Expr abstractions
+  , typ
+
+  -- ** ContentBindings at Expr and Type level
+  , shortHash
+  , contentName
+  )
+  where
 
 import Control.Applicative
 import Data.List.NonEmpty (NonEmpty (..),uncons)
+import Data.Text
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as Set
-import Data.Text
 
-import PLGrammar
-import Reversible
-import Reversible.Iso
-
-import PLLispy.ExprIso
 import PLLispy.Case
+import PLLispy.Expr.Iso
+import PLLispy.Expr.Dep
+import PLLispy.Type.Dep
+import PLLispy.Pattern.Dep
 import PLLispy.Kind
-import PLLispy.Type
-import PLLispy.Name
-
 import PLLispy.Level
-
-import PLLabel
+import PLLispy.Name
+import PLLispy.Type
+import PLLispy.Pattern
 
 import PL.Case
 import PL.Commented
 import PL.Expr hiding (appise,lamise)
-import PL.Kind
 import PL.Hash
-import PL.Type
+import PL.Kind
 import PL.Name
-import PL.Var
 import PL.TyVar
+import PL.Pattern
+import PL.Type
+import PL.Var
+import PL.FixPhase
 
--- Implicitly bind Grammars for expression bindings, abstractions and type bindings
--- TODO: This is probably a failed experiment.
-type Implicits = (?eb :: Grammar Var,?abs :: Grammar CommentedType,?tb :: Grammar TyVar)
+import PLGrammar
+import PLLabel
+import Reversible
+import Reversible.Iso
 
--- Bind the given grammars into a Grammar which takes them implicitly
-using
-  :: Implicits
-  => Grammar Var
-  -> Grammar CommentedType
-  -> Grammar TyVar
-  -> Grammar a
-  -> Grammar a
-using b abs tb a =
-  let ?eb = b
-      ?abs = abs
-      ?tb = tb
-    in a
+defaultGrammarDependencies
+  :: ( Constraints phase
 
-implicitly
-  :: Implicits
-  => (Grammar Var -> Grammar CommentedType -> Grammar TyVar -> Grammar a)
-  -> Grammar a
-implicitly f = f ?eb ?abs ?tb
+     , Var             ~ BindingFor phase
+     , ContentName     ~ ContentBindingFor phase
+     , (TypeFor phase) ~ AbstractionFor phase
+     , TyVar           ~ TypeBindingFor phase
+     , ContentName     ~ TypeContentBindingFor phase
 
--- The 'Lam' lambda constructor is defined by:
+     , Void ~ LamExtension phase
+     , Void ~ AppExtension phase
+     , Void ~ BindingExtension phase
+     , Void ~ ContentBindingExtension phase
+     , Void ~ CaseAnalysisExtension phase
+     , Void ~ SumExtension phase
+     , Void ~ ProductExtension phase
+     , Void ~ UnionExtension phase
+     , Void ~ BigLamExtension phase
+     , Void ~ BigAppExtension phase
+
+     , Void ~ NamedExtension phase
+     , Void ~ ArrowExtension phase
+     , Void ~ SumTExtension phase
+     , Void ~ ProductTExtension phase
+     , Void ~ UnionTExtension phase
+     , Void ~ BigArrowExtension phase
+     , Void ~ TypeLamExtension phase
+     , Void ~ TypeAppExtension phase
+     , Void ~ TypeBindingExtension phase
+     , Void ~ TypeContentBindingExtension phase
+
+     , Void ~ SumPatternExtension phase
+     , Void ~ ProductPatternExtension phase
+     , Void ~ UnionPatternExtension phase
+     , Void ~ BindingPatternExtension phase
+     , Void ~ BindExtension phase
+
+     , (Commented (ExprFor phase)) ~ ExprExtension phase
+     , (Commented (TypeFor phase)) ~ TypeExtension phase
+     , (Commented (PatternFor phase)) ~ PatternExtension phase
+     )
+  => GrammarDependencies phase
+defaultGrammarDependencies = GrammarDependencies
+  { _bindingFor                = var
+  , _contentBindingFor         = contentNameGrammar
+  , _abstractionFor            = sub $ typ defaultTypeGrammarDependencies
+  , _exprTypeBindingFor        = tyVar
+  , _exprTypeContentBindingFor = contentNameGrammar
+
+  , _lamGrammarExtension            = voidG
+  , _appGrammarExtension            = voidG
+  , _bindingGrammarExtension        = voidG
+  , _contentBindingGrammarExtension = voidG
+  , _caseAnalysisGrammarExtension   = voidG
+  , _sumGrammarExtension            = voidG
+  , _productGrammarExtension        = voidG
+  , _unionGrammarExtension          = voidG
+  , _bigLamGrammarExtension         = voidG
+  , _bigAppGrammarExtension         = voidG
+
+  , _exprGrammarExtension = commentedExpr defaultGrammarDependencies defaultTypeGrammarDependencies defaultPatternGrammarDependencies
+  }
+
+-- | The lambda constructor takes the form:
+--
+-- LAMBDA ABS EXPR
 lamExpr
-  :: Implicits
-  => Grammar CommentedExpr
+  :: ( Implicits phase
+     , Constraints phase
+     )
+  => Grammar (ExprFor phase)
 lamExpr =
-  lambda */                                 -- A token lambda character followed by
-  (lamIso \$/ (spaceAllowed */ ?abs)        -- an abstraction
-          \*/ (spaceRequired */ sub exprI)) -- then an expression preceeded by a required space.
+  lambda */
+  (lamIso \$/ lamExtension
+          \*/ (spaceAllowed */ abstraction)
+          \*/ (spaceRequired */ sub exprI))
 
--- The 'BigLam' big lambda constructor is defined by:
--- A big lambda followed by one or more kind abstractions then an expression.
+-- | The Big lambda constructor takes the form:
+--
+-- BIGLAMBDA kind EXPR
 bigLamExpr
-  :: Implicits
-  => Grammar CommentedExpr
+  :: ( Implicits phase
+     , Constraints phase
+     )
+  => Grammar (ExprFor phase)
 bigLamExpr =
-  bigLambda */                                -- A token big lambda character followed by
-  (bigLamIso \$/ kind                         -- a kind
-             \*/ (spaceAllowed */ sub exprI)) -- then an expression preceeded by a required space.
+  bigLambda */
+  (bigLamIso \$/ bigLamExtension
+             \*/ kind
+             \*/ (spaceAllowed */ sub exprI))
 
--- The 'App' constructor is defined by:
+-- | The function application constructor takes the form:
+--
+-- AT EXPR EXPR
 appExpr
-  :: Implicits
-  => Grammar CommentedExpr
+  :: ( Implicits phase
+     , Constraints phase
+     )
+  => Grammar (ExprFor phase)
 appExpr =
-  at */                                     -- A token 'at' character followed by
-  (appIso \$/ (spaceAllowed  */ sub exprI)  -- an expression
-          \*/ (spaceRequired */ sub exprI)) -- then another expression preceeded by a required space.
+  at */
+  (appIso \$/ appExtension
+          \*/ (spaceAllowed  */ sub exprI)
+          \*/ (spaceRequired */ sub exprI))
 
--- The 'BigApp' constructor is defined by:
+-- | The Big function application constructor takes the form:
+--
+-- BIGAT EXPR TYPE
 bigAppExpr
-  :: Implicits
-  => Grammar CommentedExpr
+  :: ( Implicits phase
+     , Constraints phase
+     )
+  => Grammar (ExprFor phase)
 bigAppExpr =
-  bigAt */                                    -- A token 'big at' character followed by
-  (bigAppIso \$/ (spaceAllowed */ sub exprI)  -- an expression
-             \*/ (spaceRequired */ sub typI)) -- then a type preceeded by a required space.
+  bigAt */
+  (bigAppIso \$/ bigAppExtension
+             \*/ (spaceAllowed  */ sub exprI)
+             \*/ (spaceRequired */ sub typI))
 
--- The binding constructor is some form of reference to a value bound by a
--- lambda abstraction. It is likely to be an index or name.
+-- | The binding constructor is some form of reference to a value bound by a
+-- lambda abstraction. It is likely to be an index of name.
+--
+-- It defers to the implicit binding grammar.
 bindingExpr
-  :: Grammar Var
-  -> Grammar CommentedExpr
-bindingExpr eb = bindingIso \$/ eb
+  :: ( Implicits phase
+     , Constraints phase
+     )
+  => Grammar (ExprFor phase)
+bindingExpr = bindingIso \$/ bindingExtension \*/ binding
 
--- The content binding constructor is a name which references an expression by
+-- | The content binding constructor is a name which references an expression by
 -- it's content.
+--
+-- It defers to the implicit content binding grammar.
 contentBindingExpr
-  :: Grammar CommentedExpr
-contentBindingExpr = contentBindingIso \$/ contentNameGrammar
+  :: ( Implicits phase
+     , Constraints phase
+     )
+  => Grammar (ExprFor phase)
+contentBindingExpr = contentBindingIso \$/ contentBindingExtension \*/ contentBinding
 
--- A Commented expression
+-- | The Sum constructor takes the form:
+--
+-- PLUS natural EXPR TYPE+
+sumExpr
+  :: ( Implicits phase
+     , Constraints phase
+     )
+  => Grammar (ExprFor phase)
+sumExpr =
+  plus */
+  (sumIso \$/ sumExtension
+          \*/ token natural
+          \*/ (spaceAllowed */ sub exprI)
+          \*/ (spaceRequired */ (sepBy1 spacePreferred $ sub typI)))
+
+-- | The Product constructor takes the form:
+--
+-- STAR EXPR*
+productExpr
+  :: ( Implicits phase
+     , Constraints phase
+     )
+  => Grammar (ExprFor phase)
+productExpr =
+  star */
+  (productIso \$/ productExtension \*/ (spaceAllowed */ sepBy spacePreferred (sub exprI)))
+
+-- | The Union constructor takes the form:
+--
+-- UNION TYPE EXPR TYPE*
+unionExpr
+  :: ( Implicits phase
+     , Constraints phase
+     )
+  => Grammar (ExprFor phase)
+unionExpr =
+  union */
+  (unionIso \$/ unionExtension
+            \*/ (spaceAllowed   */ sub typI)
+            \*/ (spacePreferred */ sub exprI)
+            \*/ (setIso \$/ (spacePreferred */ sepBy spacePreferred (sub typI))))
+
+-- | The Case constructor takes the form:
+--
+-- "CASE" CASEBODY
+--
+-- The CASEBODY contains:
+-- - A Scrutinee expression
+-- - Either:
+--   - One or many branches and an optional default expression
+--   - A default expression
+caseAnalysisExpr
+  :: ( Implicits phase
+     , Constraints phase
+     )
+  => Grammar (ExprFor phase)
+caseAnalysisExpr =
+  textIs "CASE" */
+  (caseIso \$/ caseAnalysisExtension \*/ (spaceRequired */ caseBody (sub exprI)))
+  where
+    caseIso :: Iso (CaseAnalysisExtension phase, Case (ExprFor phase) (PatternFor phase)) (ExprFor phase)
+    caseIso = Iso
+      {_forwards  = \(ext,c) -> Just . CaseAnalysisExt ext $ c
+      ,_backwards = \e -> case e of
+         CaseAnalysisExt ext c
+           -> Just (ext, c)
+         _ -> Nothing
+      }
+
+-- | Defer to the implicit Grammar for expr extensions.
+exprExtensionExpr
+  :: ( Implicits phase
+     , Constraints phase
+     )
+  => Grammar (ExprFor phase)
+exprExtensionExpr = exprExtensionIso \$/ exprExtension
+
+-- | A Commented Expression as the expr extension constructor takes the form:
+--
+-- '"' COMMENT '"' EXPR
 commentedExpr
-  :: Implicits
-  => Grammar CommentedExpr
-commentedExpr =
+  :: (Constraints phase)
+  => GrammarDependencies phase
+  -> TypeGrammarDependencies phase
+  -> PatternGrammarDependencies phase
+  -> Grammar (Commented (ExprFor phase))
+commentedExpr eDep tDep pDep =
   charIs '"' */
-  (commentedIso \$/ (commentText \* charIs '"')
-                \*/ (spaceAllowed */ sub exprI)
+  (commentedExprIso \$/ (commentText \* charIs '"')
+                    \*/ (spaceAllowed */ sub (expr eDep tDep pDep))
   )
   where
     commentText :: Grammar Comment
@@ -142,76 +344,48 @@ commentedExpr =
       ,_backwards = \(Comment t) -> Just t
       }
 
--- A 'Var' refers to a bound value by counting back to the lambda which
--- abstracted it. It is a natural number 0,1,2..
-var
-  :: Grammar Var
-var =
-  varIso \$/ natural -- A variable is given by a natural number.
-
--- The 'Sum' constructor is defined by:
-sumExpr
-  :: Implicits
-  => Grammar CommentedExpr
-sumExpr =
-  plus */                                                            -- A token '+' character followed by
-  (sumIso \$/ token natural                                          -- an index into overall sum type
-          \*/ (spaceAllowed */ sub exprI)                            -- then the expression preceeded by a required space
-          \*/ (spaceRequired */ (sepBy1 spacePreferred $ sub typI))) -- then one or many of the constituent sum types, each preceeded by a required space.
-
--- The 'Product' constructor is defined by:
-productExpr
-  :: Implicits
-  => Grammar CommentedExpr
-productExpr =
-  star */                                                             -- A token 'star' followed by
-  (productIso \$/ (spaceAllowed */ sepBy spacePreferred (sub exprI))) -- zero or many expressions, each preceeded by a required space.
-
--- The 'Union' constructor is defined by:
-unionExpr
-  :: Implicits
-  => Grammar CommentedExpr
-unionExpr =
-  union */                                                                        -- A token 'union' followed by
-  (unionIso \$/ (spaceAllowed   */ sub typI)                                      -- a type index into the overall union type
-            \*/ (spacePreferred */ sub exprI)                                     -- then the expression preceeded by a required space
-            \*/ (setIso \$/ (spacePreferred */ sepBy spacePreferred (sub typI)))) -- then zero or many of the constituent union types, each preceeded by a required space.
-
--- "CASE" signifies the start of a case statement.
+-- | Parse an expression given grammar dependencies for things such as:
+-- - Expression bindings    (E.G. var)
+-- - Expression abstraction (E.G. typ)
+-- - Type bindings          (E.G. tyVar)
 --
--- It is followed by a body which contains:
--- - A Scrutinee expression
--- - Either:
---   - One or many branches and an optional default expression
---   - A default expression
-caseAnalysis :: Implicits => Grammar CommentedExpr
-caseAnalysis =
-  textIs "CASE" */
-  (caseIso \$/ (spaceRequired */ caseBody (sub exprI)))
-  where
-    caseIso :: Iso (Case CommentedExpr CommentedPattern) CommentedExpr
-    caseIso = Iso
-      {_forwards  = Just . CaseAnalysis
-      ,_backwards = \e -> case e of
-         CaseAnalysis c
-           -> Just c
-         _ -> Nothing
-      }
+-- and a level signifier.
+--
+-- Top-level expressions prefer not to be surrounded by parenthesis.
+--
+-- Nested sub-expressions will prefer to be surrounded by parenthesis unless the
+-- specific sub-expression is unambiguous (like a single integer variable
+-- binding)
+expr
+  :: Constraints phase
+  => GrammarDependencies phase
+  -> TypeGrammarDependencies phase
+  -> PatternGrammarDependencies phase
+  -> Level
+  -> Grammar (ExprFor phase)
+expr grammarDependencies typeGrammarDependencies patternGrammarDependencies level =
+  let ?grammarDependencies        = grammarDependencies
+      ?typeGrammarDependencies    = typeGrammarDependencies
+      ?patternGrammarDependencies = patternGrammarDependencies
+   in exprI level
 
 exprI
-  :: Implicits
+  :: forall phase
+   . ( Implicits phase
+     , Constraints phase
+     )
   => Level
-  -> Grammar CommentedExpr
+  -> Grammar (ExprFor phase)
 exprI = level unambiguousExprI ambiguousExprI
   where
-    unambiguousExprI :: [Grammar CommentedExpr]
+    unambiguousExprI :: [Grammar (ExprFor phase)]
     unambiguousExprI =
-      [ bindingExpr ?eb
+      [ bindingExpr
       , contentBindingExpr
-      , commentedExpr
+      , exprExtensionExpr
       ]
 
-    ambiguousExprI :: [Grammar CommentedExpr]
+    ambiguousExprI :: [Grammar (ExprFor phase)]
     ambiguousExprI =
       [ lamExpr
       , bigLamExpr
@@ -220,30 +394,12 @@ exprI = level unambiguousExprI ambiguousExprI
       , sumExpr
       , productExpr
       , unionExpr
-      , caseAnalysis
+      , caseAnalysisExpr
       ]
 
 
--- Parse a top-level expression given parsers for:
--- - Expression bindings    (E.G. Var)
--- - Expression abstraction (E.G. CommentedType)
--- - Type bindings          (E.G. Var)
---
--- Unlike sub-expressions, top-level expressions do not prefer to be surrounded
--- by parenthesis
---
--- A sub-expression contained within some larger expression will prefer to be
--- surrounded by parenthesis unless the specific sub-expression is unambigous
--- (like a single integer).
-expr
-  :: Grammar Var
-  -> Grammar CommentedType
-  -> Grammar TyVar
-  -> Level
-  -> Grammar CommentedExpr
-expr eb abs tb n
-  = let ?eb  = eb
-        ?abs = abs
-        ?tb  = tb
-       in exprI n
+{- Misc -}
+
+voidG :: Grammar Void
+voidG = rpure void -- This wont work?
 

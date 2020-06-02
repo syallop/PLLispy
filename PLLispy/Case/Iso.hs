@@ -1,5 +1,11 @@
 {-# LANGUAGE MultiWayIf, OverloadedStrings #-}
-module PLLispy.CaseIso where
+module PLLispy.Case.Iso
+  ( caseIso
+  , caseBranchesIso
+  , defaultOnlyIso
+  , caseBranchIso
+  )
+  where
 
 import PLGrammar
 import Reversible.Iso

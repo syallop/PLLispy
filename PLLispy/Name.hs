@@ -1,10 +1,12 @@
 module PLLispy.Name
   ( contentNameGrammar
+  , var
   )
   where
 
 import PL.Name
 import PL.Hash
+import PL.Var
 
 import PLGrammar
 import Reversible
@@ -44,4 +46,21 @@ contentNameGrammar = contentNameIso \$/ (charIs '#' */ hashGrammar)
 
     -- A slash used to separate the algorithm from a Base58 charset (deliberately excludes 0).
     hashCharacters = ['/'] <> ['1'..'9'] <> ['A'..'Z'] <> ['a'..'z']
+
+-- | Var can be used as an expressions binding.
+--
+-- It refers to a bound value by counting back to the lambda which
+-- abstracted it. It takes the form of a natural number E.G:
+--
+-- 0,1,2,...
+var
+  :: Grammar Var
+var =
+  varIso \$/ natural -- A variable is given by a natural number.
+  where
+    varIso :: Iso Int Var
+    varIso = Iso
+      {_forwards = Just . mkVar
+      ,_backwards = Just . fromEnum -- TODO: Partial
+      }
 
