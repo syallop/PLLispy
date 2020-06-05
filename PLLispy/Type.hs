@@ -316,10 +316,6 @@ tyVar =
   charIs '?' */
   (tyVarIso \$/ natural)
 
-shortHash
-  :: Grammar ShortHash
-shortHash = undefined
-
 -- | Parse a type given grammar dependencies for things such as:
 -- - Type bindings (E.G. tyVar)
 --
