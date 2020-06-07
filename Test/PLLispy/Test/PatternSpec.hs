@@ -10,6 +10,7 @@ import PL.Commented
 import PL.Var
 import PL.Type
 import PL.Expr
+import PL.FixPhase
 import PL.TyVar
 import PL.Error
 import PL.TypeCtx
@@ -61,12 +62,12 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms =
   describe "There must be some input that parses all key programs" $
-    parsesToPatternsSpec patternTestCases lispyParser (ppTestPattern . addPatternComments) ppTestError
+    parsesToPatternsSpec patternTestCases lispyParser ppCommentedPattern ppDefaultError
   where
     patternTestCases :: Map.Map Text.Text PatternTestCase
     patternTestCases = mkPatternTestCases sources
 
-    lispyParser :: Text.Text -> Either (Error Expr Type Pattern TypeCtx) (PatternFor CommentedPhase, Source)
+    lispyParser :: Text.Text -> Either Error (PatternFor CommentedPhase, Source)
     lispyParser input = let p = toParser lispyPattern
                          in case runParser p input of
                               ParseSuccess a cursor

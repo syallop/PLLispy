@@ -77,10 +77,10 @@ lispyExpr
      , Ord (PatternFor phase)
 
      , Var             ~ BindingFor phase
-     , ContentName     ~ ContentBindingFor phase
+     , ShortHash       ~ ContentBindingFor phase
      , (TypeFor phase) ~ AbstractionFor phase
      , TyVar           ~ TypeBindingFor phase
-     , ContentName     ~ TypeContentBindingFor phase
+     , ShortHash       ~ TypeContentBindingFor phase
 
      , Void ~ LamExtension phase
      , Void ~ AppExtension phase

@@ -59,7 +59,7 @@ base58Hash = base58HashIso \$/ (hashAlgorithmGrammar \* charIs '/') \*/ base58Te
 
 base58HashIso :: Iso (HashAlgorithm, Text) Hash
 base58HashIso = Iso
-  {_forwards  = \(alg,bytes) -> mkBase58 alg bytes
+  {_forwards  = \(alg,bytes) -> either (const Nothing) Just . mkBase58 alg $ bytes
   ,_backwards = Just . unBase58
   }
 
@@ -97,12 +97,13 @@ base58Characters = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 -- #SHA512/BGpbCZN
 -- #BGpbCZN
 shortHash :: Grammar ShortHash
-shortHash = alternatives
-  [ base58ShortHashIso \$/ (rpure Nothing)
+shortHash = charIs '#' */ alternatives
+  [ base58ShortHashIso \$/ (justIso \$/ (hashAlgorithmGrammar \* charIs '/'))
                        \*/ base58Text
 
-  , base58ShortHashIso \$/ (justIso \$/ (hashAlgorithmGrammar \* charIs '/'))
+  , base58ShortHashIso \$/ (rpure Nothing)
                        \*/ base58Text
+
   ]
   where
     justIso :: Iso a (Maybe a)

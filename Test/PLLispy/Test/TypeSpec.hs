@@ -59,12 +59,12 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms =
   describe "There must be some input that parses all key programs" $
-    parsesToTypesSpec typeTestCases lispyParser (ppTestType . addTypeComments) ppTestError
+    parsesToTypesSpec typeTestCases lispyParser ppCommentedType ppDefaultError
   where
     typeTestCases :: Map.Map Text.Text TypeTestCase
     typeTestCases = mkTypeTestCases sources
 
-    lispyParser :: Text.Text -> Either (Error Expr Type Pattern TypeCtx) (TypeFor CommentedPhase, Source)
+    lispyParser :: Text.Text -> Either Error (TypeFor CommentedPhase, Source)
     lispyParser input = let p = toParser lispyType
                          in case runParser p input of
                               ParseSuccess a cursor

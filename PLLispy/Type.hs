@@ -95,7 +95,7 @@ defaultTypeGrammarDependencies
   :: ( TypeConstraints phase
 
      , TyVar       ~ TypeBindingFor phase
-     , ContentName ~ TypeContentBindingFor phase
+     , ShortHash   ~ TypeContentBindingFor phase
 
      , Void ~ NamedExtension phase
      , Void ~ ArrowExtension phase
@@ -113,7 +113,7 @@ defaultTypeGrammarDependencies
   => TypeGrammarDependencies phase
 defaultTypeGrammarDependencies = TypeGrammarDependencies
   { _typeBindingFor        = tyVar
-  , _typeContentBindingFor = contentNameGrammar
+  , _typeContentBindingFor = shortHash
 
   , _namedGrammarExtension              = voidG
   , _arrowGrammarExtension              = voidG

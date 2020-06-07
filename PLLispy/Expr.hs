@@ -91,6 +91,7 @@ import PL.TyVar
 import PL.Pattern
 import PL.Type
 import PL.Var
+import PL.HashStore
 import PL.FixPhase
 
 import PLGrammar
@@ -102,10 +103,10 @@ defaultGrammarDependencies
   :: ( Constraints phase
 
      , Var             ~ BindingFor phase
-     , ContentName     ~ ContentBindingFor phase
+     , ShortHash       ~ ContentBindingFor phase
      , (TypeFor phase) ~ AbstractionFor phase
      , TyVar           ~ TypeBindingFor phase
-     , ContentName     ~ TypeContentBindingFor phase
+     , ShortHash       ~ TypeContentBindingFor phase
 
      , Void ~ LamExtension phase
      , Void ~ AppExtension phase
@@ -142,10 +143,10 @@ defaultGrammarDependencies
   => GrammarDependencies phase
 defaultGrammarDependencies = GrammarDependencies
   { _bindingFor                = var
-  , _contentBindingFor         = contentNameGrammar
+  , _contentBindingFor         = shortHash
   , _abstractionFor            = sub $ typ defaultTypeGrammarDependencies
   , _exprTypeBindingFor        = tyVar
-  , _exprTypeContentBindingFor = contentNameGrammar
+  , _exprTypeContentBindingFor = shortHash
 
   , _lamGrammarExtension            = voidG
   , _appGrammarExtension            = voidG

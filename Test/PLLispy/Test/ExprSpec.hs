@@ -7,16 +7,24 @@ module PLLispy.Test.ExprSpec
 
    -- Misc utilities used for testing that other *Spec modules would like to
    -- resuse.
-  , TestExpr
-  , TestType
-  , TestPattern
-  , TestTypeCtx
-  , ppTestExpr
-  , ppTestType
-  , ppTestPattern
+  , ppExpr
+  , ppType
+  , ppPattern
+  , ppCommentedExpr
+  , ppCommentedType
+  , ppCommentedPattern
+
   , ppVar
   , ppTyVar
-  , ppTestError
+  , ppDefaultError
+
+  , exprGrammar
+  , typeGrammar
+  , patternGrammar
+
+  , commentedExprGrammar
+  , commentedTypeGrammar
+  , commentedPatternGrammar
   )
   where
 
@@ -29,8 +37,10 @@ import PL.Expr
 import PL.Kind
 import PL.TyVar
 import PL.Type
+import PL.FixPhase
 import PL.Name
 import PL.Hash
+import PL.HashStore
 import PL.Var
 import PL.TypeCtx
 
@@ -52,16 +62,19 @@ import PLLispy.Expr
 import PLLispy.Type
 import PLLispy.Test.Sources.Expr
 import PLLispy.Level
+import PLLispy.Name
+import PLLispy.Pattern
 
 import PLGrammar
 import PLPrinter
 import PLPrinter.Doc
 import PLParser
+import Reversible
 
-import Control.Monad
 import Data.Text
 import qualified Data.Text as Text
 import Data.Monoid hiding (Product, Sum)
+import Control.Monad hiding (void)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -70,19 +83,155 @@ import qualified Data.List as List
 
 import Test.Hspec
 
-type TestExpr    = ExprFor    CommentedPhase
-type TestType    = TypeFor    CommentedPhase
-type TestPattern = PatternFor CommentedPhase
-type TestTypeCtx = TypeCtxFor CommentedPhase
+voidG :: Grammar Void
+voidG = rpure void
 
-ppTestExpr :: TestExpr -> Doc
-ppTestExpr = fromMaybe mempty . pprint (toPrinter lispyExpr)
+exprGrammar :: Grammar Expr
+exprGrammar = top $ expr exprDeps typeDeps patternDeps
 
-ppTestType :: TestType -> Doc
-ppTestType = fromMaybe mempty . pprint (toPrinter lispyType)
+typeGrammar :: Grammar Type
+typeGrammar = top $ typ typeDeps
 
-ppTestPattern :: TestPattern -> Doc
-ppTestPattern = fromMaybe mempty . pprint (toPrinter lispyPattern)
+patternGrammar :: Grammar Pattern
+patternGrammar = top $ pattern patternDeps typeDeps
+
+commentedExprGrammar :: Grammar (ExprFor CommentedPhase)
+commentedExprGrammar = top $ expr commentedExprDeps commentedTypeDeps commentedPatternDeps
+
+commentedTypeGrammar :: Grammar (TypeFor CommentedPhase)
+commentedTypeGrammar = top $ typ commentedTypeDeps
+
+commentedPatternGrammar :: Grammar (PatternFor CommentedPhase)
+commentedPatternGrammar = top $ pattern commentedPatternDeps commentedTypeDeps
+
+exprDeps :: GrammarDependencies DefaultPhase
+exprDeps = GrammarDependencies
+  { _bindingFor                = var
+  , _contentBindingFor         = contentNameGrammar
+  , _abstractionFor            = sub $ typ typeDeps
+  , _exprTypeBindingFor        = tyVar
+  , _exprTypeContentBindingFor = contentNameGrammar
+
+  , _lamGrammarExtension            = voidG
+  , _appGrammarExtension            = voidG
+  , _bindingGrammarExtension        = voidG
+  , _contentBindingGrammarExtension = voidG
+  , _caseAnalysisGrammarExtension   = voidG
+  , _sumGrammarExtension            = voidG
+  , _productGrammarExtension        = voidG
+  , _unionGrammarExtension          = voidG
+  , _bigLamGrammarExtension         = voidG
+  , _bigAppGrammarExtension         = voidG
+
+  , _exprGrammarExtension = voidG
+  }
+
+typeDeps :: TypeGrammarDependencies DefaultPhase
+typeDeps = TypeGrammarDependencies
+  { _typeBindingFor        = tyVar
+  , _typeContentBindingFor = contentNameGrammar
+
+  , _namedGrammarExtension              = voidG
+  , _arrowGrammarExtension              = voidG
+  , _sumTGrammarExtension               = voidG
+  , _productTGrammarExtension           = voidG
+  , _unionTGrammarExtension             = voidG
+  , _bigArrowGrammarExtension           = voidG
+  , _typeLamGrammarExtension            = voidG
+  , _typeAppGrammarExtension            = voidG
+  , _typeBindingGrammarExtension        = voidG
+  , _typeContentBindingGrammarExtension = voidG
+
+  , _typeGrammarExtension = voidG
+  }
+
+patternDeps :: PatternGrammarDependencies DefaultPhase
+patternDeps = PatternGrammarDependencies
+  { _patternBindingFor = var
+
+  , _sumPatternGrammarExtension     = voidG
+  , _productPatternGrammarExtension = voidG
+  , _unionPatternGrammarExtension   = voidG
+  , _bindingPatternGrammarExtension = voidG
+  , _bindGrammarExtension           = voidG
+
+  , _patternGrammarExtension = voidG
+  }
+
+commentedExprDeps :: GrammarDependencies CommentedPhase
+commentedExprDeps = GrammarDependencies
+  { _bindingFor                = var
+  , _contentBindingFor         = shortHash
+  , _abstractionFor            = sub $ typ commentedTypeDeps
+  , _exprTypeBindingFor        = tyVar
+  , _exprTypeContentBindingFor = shortHash
+
+  , _lamGrammarExtension            = voidG
+  , _appGrammarExtension            = voidG
+  , _bindingGrammarExtension        = voidG
+  , _contentBindingGrammarExtension = voidG
+  , _caseAnalysisGrammarExtension   = voidG
+  , _sumGrammarExtension            = voidG
+  , _productGrammarExtension        = voidG
+  , _unionGrammarExtension          = voidG
+  , _bigLamGrammarExtension         = voidG
+  , _bigAppGrammarExtension         = voidG
+
+  , _exprGrammarExtension = commentedExpr commentedExprDeps commentedTypeDeps commentedPatternDeps
+  }
+
+commentedTypeDeps :: TypeGrammarDependencies CommentedPhase
+commentedTypeDeps = TypeGrammarDependencies
+  { _typeBindingFor        = tyVar
+  , _typeContentBindingFor = shortHash
+
+  , _namedGrammarExtension              = voidG
+  , _arrowGrammarExtension              = voidG
+  , _sumTGrammarExtension               = voidG
+  , _productTGrammarExtension           = voidG
+  , _unionTGrammarExtension             = voidG
+  , _bigArrowGrammarExtension           = voidG
+  , _typeLamGrammarExtension            = voidG
+  , _typeAppGrammarExtension            = voidG
+  , _typeBindingGrammarExtension        = voidG
+  , _typeContentBindingGrammarExtension = voidG
+
+  , _typeGrammarExtension = commentedTyp commentedTypeDeps
+  }
+
+commentedPatternDeps :: PatternGrammarDependencies CommentedPhase
+commentedPatternDeps = PatternGrammarDependencies
+  { _patternBindingFor = var
+
+  , _sumPatternGrammarExtension     = voidG
+  , _productPatternGrammarExtension = voidG
+  , _unionPatternGrammarExtension   = voidG
+  , _bindingPatternGrammarExtension = voidG
+  , _bindGrammarExtension           = voidG
+
+  , _patternGrammarExtension = commentedPattern commentedPatternDeps commentedTypeDeps
+  }
+
+ppCommentedExpr :: ExprFor CommentedPhase -> Doc
+ppCommentedExpr = fromMaybe mempty . pprint (toPrinter commentedExprGrammar)
+
+ppCommentedType :: TypeFor CommentedPhase -> Doc
+ppCommentedType = fromMaybe mempty . pprint (toPrinter commentedTypeGrammar)
+
+ppCommentedPattern :: PatternFor CommentedPhase -> Doc
+ppCommentedPattern = fromMaybe mempty . pprint (toPrinter commentedPatternGrammar)
+
+ppExpr :: Expr -> Doc
+ppExpr = fromMaybe mempty . pprint (toPrinter exprGrammar)
+
+ppType :: Type -> Doc
+ppType = fromMaybe mempty . pprint (toPrinter typeGrammar)
+
+ppPattern :: Pattern -> Doc
+ppPattern = fromMaybe mempty . pprint (toPrinter patternGrammar)
+
+ppKind :: Kind -> Doc
+ppKind = fromMaybe mempty . pprint (toPrinter kind)
 
 ppVar :: Var -> Doc
 ppVar = fromMaybe mempty . pprint (toPrinter var)
@@ -90,14 +239,17 @@ ppVar = fromMaybe mempty . pprint (toPrinter var)
 ppTyVar :: TyVar -> Doc
 ppTyVar = fromMaybe mempty . pprint (toPrinter tyVar)
 
-ppTestError :: Error Expr Type Pattern TypeCtx -> Doc
-ppTestError = ppError (ppTestPattern . addPatternComments)
-                      (ppTestType . addTypeComments)
-                      (ppTestExpr . addComments)
-                      (ppTypeCtx document (ppTypeInfo (ppTestType . addTypeComments)))
-                      ppVar
-                      ppTyVar
-
+ppDefaultError :: PPError DefaultPhase
+ppDefaultError = PPError
+  { _ppExpr        = ppExpr
+  , _ppType        = ppType
+  , _ppPattern     = ppPattern
+  , _ppKind        = ppKind
+  , _ppTypeCtx     = ppTypeCtx document (ppTypeInfo ppType)
+  , _ppTypeName    = document
+  , _ppBinding     = ppVar
+  , _ppTypeBinding = ppTyVar
+  }
 
 -- Test expressions parse, reduce and type check from example sources
 spec
@@ -109,12 +261,12 @@ spec = do
 testKeyPrograms :: Spec
 testKeyPrograms =
   describe "There must be some input that parses all key programs" $
-    parsesToSpec exprTestCases lispyParser (ppTestExpr . addComments) ppTestError
+    parsesToSpec exprTestCases lispyParser ppCommentedExpr ppDefaultError
   where
     exprTestCases :: Map.Map Text.Text ExprTestCase
     exprTestCases = mkTestCases sources
 
-    lispyParser :: Text.Text -> Either (Error Expr Type Pattern TypeCtx) (ExprFor CommentedPhase, Source)
+    lispyParser :: Text.Text -> Either Error (ExprFor CommentedPhase, Source)
     lispyParser input = let p = toParser lispyExpr
                          in case runParser p input of
                               ParseSuccess a cursor
@@ -210,12 +362,12 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
     describe "ContentBinding" $ do
       testcase $ TestCase
         { _testCase             = "Simple"
-        , _input                = ["#SHA512/5x9U6wV2TtRKERLUJPdbnx8tyHPHAsban2gPAHsHHYGhVys1mDZT24WaEnVujtDepQv3nP7ff4gcqBR5hPmLxDNFC4RFHwjuxodJw56wAVQcui1dgkiky5hsYfBg7WA5o2ZFBwhtkysYVLJaDiTyHLnFeZECDtjDYpzo6cz5LxRfos6"
+        , _input                = ["#SHA512/5x9U6wV2TtRKERLUJ"
                                   ]
         , _grammar              = exprGrammar
-        , _shouldParse          = Just . ContentBinding . mkContentName . fromJust . readBase58 $ "SHA512/5x9U6wV2TtRKERLUJPdbnx8tyHPHAsban2gPAHsHHYGhVys1mDZT24WaEnVujtDepQv3nP7ff4gcqBR5hPmLxDNFC4RFHwjuxodJw56wAVQcui1dgkiky5hsYfBg7WA5o2ZFBwhtkysYVLJaDiTyHLnFeZECDtjDYpzo6cz5LxRfos6"
+        , _shouldParse          = Just . ContentBinding . fromJust . mkBase58ShortHash (Just SHA512) $ "5x9U6wV2TtRKERLUJ"
         , _shouldParseLeftovers = ""
-        , _shouldPrint          = Just "#SHA512/5x9U6wV2TtRKERLUJPdbnx8tyHPHAsban2gPAHsHHYGhVys1mDZT24WaEnVujtDepQv3nP7ff4gcqBR5hPmLxDNFC4RFHwjuxodJw56wAVQcui1dgkiky5hsYfBg7WA5o2ZFBwhtkysYVLJaDiTyHLnFeZECDtjDYpzo6cz5LxRfos6"
+        , _shouldPrint          = Just "#5x9U6wV2TtRKERLUJ"
         }
 
     describe "Sum" $ do

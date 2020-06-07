@@ -34,6 +34,11 @@ module PLLispy.Pattern
   , bindingPattern
   , bindPattern
   , patternExtensionPattern
+
+  -- * Pattern extension Grammars
+  --
+  -- Grammars for specific extensions to the Pattern ast itself.
+  , commentedPattern
   )
   where
 
@@ -63,6 +68,7 @@ import PL.Pattern
 import PL.Kind
 import PL.FixPhase
 import PL.TyVar
+import PL.HashStore
 import PL.Name
 import PL.Type
 import PL.Var
@@ -70,9 +76,9 @@ import PL.Var
 defaultPatternGrammarDependencies
   :: ( PatternConstraints phase
 
-     , Var   ~ BindingFor phase
-     , TyVar ~ TypeBindingFor phase
-     , ContentName ~ TypeContentBindingFor phase
+     , Var       ~ BindingFor phase
+     , TyVar     ~ TypeBindingFor phase
+     , ShortHash ~ TypeContentBindingFor phase
 
      , Void ~ SumPatternExtension phase
      , Void ~ ProductPatternExtension phase
@@ -208,7 +214,6 @@ patternI = level unambiguous ambiguous
       [ bindPattern
       , bindingPattern
       , patternExtensionPattern
-      --, commentedPattern
       ]
 
     ambiguous :: [Grammar (PatternFor phase)]
@@ -217,7 +222,6 @@ patternI = level unambiguous ambiguous
       , productPattern
       , unionPattern
       ]
-
 
 -- A Commented Pattern
 commentedPattern
