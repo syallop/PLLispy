@@ -108,33 +108,33 @@ defaultGrammarDependencies
      , TyVar           ~ TypeBindingFor phase
      , ShortHash       ~ TypeContentBindingFor phase
 
-     , Void ~ LamExtension phase
-     , Void ~ AppExtension phase
-     , Void ~ BindingExtension phase
-     , Void ~ ContentBindingExtension phase
-     , Void ~ CaseAnalysisExtension phase
-     , Void ~ SumExtension phase
-     , Void ~ ProductExtension phase
-     , Void ~ UnionExtension phase
-     , Void ~ BigLamExtension phase
-     , Void ~ BigAppExtension phase
+     , NoExt ~ LamExtension phase
+     , NoExt ~ AppExtension phase
+     , NoExt ~ BindingExtension phase
+     , NoExt ~ ContentBindingExtension phase
+     , NoExt ~ CaseAnalysisExtension phase
+     , NoExt ~ SumExtension phase
+     , NoExt ~ ProductExtension phase
+     , NoExt ~ UnionExtension phase
+     , NoExt ~ BigLamExtension phase
+     , NoExt ~ BigAppExtension phase
 
-     , Void ~ NamedExtension phase
-     , Void ~ ArrowExtension phase
-     , Void ~ SumTExtension phase
-     , Void ~ ProductTExtension phase
-     , Void ~ UnionTExtension phase
-     , Void ~ BigArrowExtension phase
-     , Void ~ TypeLamExtension phase
-     , Void ~ TypeAppExtension phase
-     , Void ~ TypeBindingExtension phase
-     , Void ~ TypeContentBindingExtension phase
+     , NoExt ~ NamedExtension phase
+     , NoExt ~ ArrowExtension phase
+     , NoExt ~ SumTExtension phase
+     , NoExt ~ ProductTExtension phase
+     , NoExt ~ UnionTExtension phase
+     , NoExt ~ BigArrowExtension phase
+     , NoExt ~ TypeLamExtension phase
+     , NoExt ~ TypeAppExtension phase
+     , NoExt ~ TypeBindingExtension phase
+     , NoExt ~ TypeContentBindingExtension phase
 
-     , Void ~ SumPatternExtension phase
-     , Void ~ ProductPatternExtension phase
-     , Void ~ UnionPatternExtension phase
-     , Void ~ BindingPatternExtension phase
-     , Void ~ BindExtension phase
+     , NoExt ~ SumPatternExtension phase
+     , NoExt ~ ProductPatternExtension phase
+     , NoExt ~ UnionPatternExtension phase
+     , NoExt ~ BindingPatternExtension phase
+     , NoExt ~ BindExtension phase
 
      , (Commented (ExprFor phase)) ~ ExprExtension phase
      , (Commented (TypeFor phase)) ~ TypeExtension phase
@@ -148,16 +148,16 @@ defaultGrammarDependencies = GrammarDependencies
   , _exprTypeBindingFor        = tyVar
   , _exprTypeContentBindingFor = shortHash
 
-  , _lamGrammarExtension            = voidG
-  , _appGrammarExtension            = voidG
-  , _bindingGrammarExtension        = voidG
-  , _contentBindingGrammarExtension = voidG
-  , _caseAnalysisGrammarExtension   = voidG
-  , _sumGrammarExtension            = voidG
-  , _productGrammarExtension        = voidG
-  , _unionGrammarExtension          = voidG
-  , _bigLamGrammarExtension         = voidG
-  , _bigAppGrammarExtension         = voidG
+  , _lamGrammarExtension            = noExtG
+  , _appGrammarExtension            = noExtG
+  , _bindingGrammarExtension        = noExtG
+  , _contentBindingGrammarExtension = noExtG
+  , _caseAnalysisGrammarExtension   = noExtG
+  , _sumGrammarExtension            = noExtG
+  , _productGrammarExtension        = noExtG
+  , _unionGrammarExtension          = noExtG
+  , _bigLamGrammarExtension         = noExtG
+  , _bigAppGrammarExtension         = noExtG
 
   , _exprGrammarExtension = commentedExpr defaultGrammarDependencies defaultTypeGrammarDependencies defaultPatternGrammarDependencies
   }
@@ -401,6 +401,6 @@ exprI = level unambiguousExprI ambiguousExprI
 
 {- Misc -}
 
-voidG :: Grammar Void
-voidG = rpure void -- This wont work?
+noExtG :: Grammar NoExt
+noExtG = rpure noExt -- This wont work?
 

@@ -80,22 +80,22 @@ defaultPatternGrammarDependencies
      , TyVar     ~ TypeBindingFor phase
      , ShortHash ~ TypeContentBindingFor phase
 
-     , Void ~ SumPatternExtension phase
-     , Void ~ ProductPatternExtension phase
-     , Void ~ UnionPatternExtension phase
-     , Void ~ BindingPatternExtension phase
-     , Void ~ BindExtension phase
+     , NoExt ~ SumPatternExtension phase
+     , NoExt ~ ProductPatternExtension phase
+     , NoExt ~ UnionPatternExtension phase
+     , NoExt ~ BindingPatternExtension phase
+     , NoExt ~ BindExtension phase
 
-     , Void ~ NamedExtension phase
-     , Void ~ ArrowExtension phase
-     , Void ~ SumTExtension phase
-     , Void ~ ProductTExtension phase
-     , Void ~ UnionTExtension phase
-     , Void ~ BigArrowExtension phase
-     , Void ~ TypeLamExtension phase
-     , Void ~ TypeAppExtension phase
-     , Void ~ TypeBindingExtension phase
-     , Void ~ TypeContentBindingExtension phase
+     , NoExt ~ NamedExtension phase
+     , NoExt ~ ArrowExtension phase
+     , NoExt ~ SumTExtension phase
+     , NoExt ~ ProductTExtension phase
+     , NoExt ~ UnionTExtension phase
+     , NoExt ~ BigArrowExtension phase
+     , NoExt ~ TypeLamExtension phase
+     , NoExt ~ TypeAppExtension phase
+     , NoExt ~ TypeBindingExtension phase
+     , NoExt ~ TypeContentBindingExtension phase
 
      , (Commented (PatternFor phase)) ~ PatternExtension phase
      , (Commented (TypeFor phase)) ~ TypeExtension phase
@@ -104,11 +104,11 @@ defaultPatternGrammarDependencies
 defaultPatternGrammarDependencies = PatternGrammarDependencies
   { _patternBindingFor = var
 
-  , _sumPatternGrammarExtension     = voidG
-  , _productPatternGrammarExtension = voidG
-  , _unionPatternGrammarExtension   = voidG
-  , _bindingPatternGrammarExtension = voidG
-  , _bindGrammarExtension           = voidG
+  , _sumPatternGrammarExtension     = noExtG
+  , _productPatternGrammarExtension = noExtG
+  , _unionPatternGrammarExtension   = noExtG
+  , _bindingPatternGrammarExtension = noExtG
+  , _bindGrammarExtension           = noExtG
 
   , _patternGrammarExtension = commentedPattern defaultPatternGrammarDependencies defaultTypeGrammarDependencies
   }
@@ -250,6 +250,6 @@ commentedPattern pDep tDep =
 
 {- Misc -}
 
-voidG :: Grammar Void
-voidG = rpure void -- This wont work?
+noExtG :: Grammar NoExt
+noExtG = rpure noExt -- This wont work?
 

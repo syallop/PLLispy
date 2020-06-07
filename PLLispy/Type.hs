@@ -97,16 +97,16 @@ defaultTypeGrammarDependencies
      , TyVar       ~ TypeBindingFor phase
      , ShortHash   ~ TypeContentBindingFor phase
 
-     , Void ~ NamedExtension phase
-     , Void ~ ArrowExtension phase
-     , Void ~ SumTExtension phase
-     , Void ~ ProductTExtension phase
-     , Void ~ UnionTExtension phase
-     , Void ~ BigArrowExtension phase
-     , Void ~ TypeLamExtension phase
-     , Void ~ TypeAppExtension phase
-     , Void ~ TypeBindingExtension phase
-     , Void ~ TypeContentBindingExtension phase
+     , NoExt ~ NamedExtension phase
+     , NoExt ~ ArrowExtension phase
+     , NoExt ~ SumTExtension phase
+     , NoExt ~ ProductTExtension phase
+     , NoExt ~ UnionTExtension phase
+     , NoExt ~ BigArrowExtension phase
+     , NoExt ~ TypeLamExtension phase
+     , NoExt ~ TypeAppExtension phase
+     , NoExt ~ TypeBindingExtension phase
+     , NoExt ~ TypeContentBindingExtension phase
 
      , (Commented (TypeFor phase)) ~ TypeExtension phase
      )
@@ -115,16 +115,16 @@ defaultTypeGrammarDependencies = TypeGrammarDependencies
   { _typeBindingFor        = tyVar
   , _typeContentBindingFor = shortHash
 
-  , _namedGrammarExtension              = voidG
-  , _arrowGrammarExtension              = voidG
-  , _sumTGrammarExtension               = voidG
-  , _productTGrammarExtension           = voidG
-  , _unionTGrammarExtension             = voidG
-  , _bigArrowGrammarExtension           = voidG
-  , _typeLamGrammarExtension            = voidG
-  , _typeAppGrammarExtension            = voidG
-  , _typeBindingGrammarExtension        = voidG
-  , _typeContentBindingGrammarExtension = voidG
+  , _namedGrammarExtension              = noExtG
+  , _arrowGrammarExtension              = noExtG
+  , _sumTGrammarExtension               = noExtG
+  , _productTGrammarExtension           = noExtG
+  , _unionTGrammarExtension             = noExtG
+  , _bigArrowGrammarExtension           = noExtG
+  , _typeLamGrammarExtension            = noExtG
+  , _typeAppGrammarExtension            = noExtG
+  , _typeBindingGrammarExtension        = noExtG
+  , _typeContentBindingGrammarExtension = noExtG
 
   , _typeGrammarExtension = commentedTyp defaultTypeGrammarDependencies
   }
@@ -409,8 +409,8 @@ name = try $ nameIso \$/ charWhen upperAlpha \*/ longestMatching lowerAlpha
                                 -> Nothing
       }
 
-voidG :: Grammar Void
-voidG = rpure void -- This wont work?
+noExtG :: Grammar NoExt
+noExtG = rpure noExt
 
 nonEmptyIso :: Iso [a] (NonEmpty a)
 nonEmptyIso = Iso

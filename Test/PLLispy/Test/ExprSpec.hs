@@ -74,7 +74,7 @@ import Reversible
 import Data.Text
 import qualified Data.Text as Text
 import Data.Monoid hiding (Product, Sum)
-import Control.Monad hiding (void)
+import Control.Monad hiding (noExt)
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -83,8 +83,8 @@ import qualified Data.List as List
 
 import Test.Hspec
 
-voidG :: Grammar Void
-voidG = rpure void
+noExtG :: Grammar NoExt
+noExtG = rpure noExt
 
 exprGrammar :: Grammar Expr
 exprGrammar = top $ expr exprDeps typeDeps patternDeps
@@ -112,18 +112,18 @@ exprDeps = GrammarDependencies
   , _exprTypeBindingFor        = tyVar
   , _exprTypeContentBindingFor = contentNameGrammar
 
-  , _lamGrammarExtension            = voidG
-  , _appGrammarExtension            = voidG
-  , _bindingGrammarExtension        = voidG
-  , _contentBindingGrammarExtension = voidG
-  , _caseAnalysisGrammarExtension   = voidG
-  , _sumGrammarExtension            = voidG
-  , _productGrammarExtension        = voidG
-  , _unionGrammarExtension          = voidG
-  , _bigLamGrammarExtension         = voidG
-  , _bigAppGrammarExtension         = voidG
+  , _lamGrammarExtension            = noExtG
+  , _appGrammarExtension            = noExtG
+  , _bindingGrammarExtension        = noExtG
+  , _contentBindingGrammarExtension = noExtG
+  , _caseAnalysisGrammarExtension   = noExtG
+  , _sumGrammarExtension            = noExtG
+  , _productGrammarExtension        = noExtG
+  , _unionGrammarExtension          = noExtG
+  , _bigLamGrammarExtension         = noExtG
+  , _bigAppGrammarExtension         = noExtG
 
-  , _exprGrammarExtension = voidG
+  , _exprGrammarExtension = noExtG
   }
 
 typeDeps :: TypeGrammarDependencies DefaultPhase
@@ -131,31 +131,31 @@ typeDeps = TypeGrammarDependencies
   { _typeBindingFor        = tyVar
   , _typeContentBindingFor = contentNameGrammar
 
-  , _namedGrammarExtension              = voidG
-  , _arrowGrammarExtension              = voidG
-  , _sumTGrammarExtension               = voidG
-  , _productTGrammarExtension           = voidG
-  , _unionTGrammarExtension             = voidG
-  , _bigArrowGrammarExtension           = voidG
-  , _typeLamGrammarExtension            = voidG
-  , _typeAppGrammarExtension            = voidG
-  , _typeBindingGrammarExtension        = voidG
-  , _typeContentBindingGrammarExtension = voidG
+  , _namedGrammarExtension              = noExtG
+  , _arrowGrammarExtension              = noExtG
+  , _sumTGrammarExtension               = noExtG
+  , _productTGrammarExtension           = noExtG
+  , _unionTGrammarExtension             = noExtG
+  , _bigArrowGrammarExtension           = noExtG
+  , _typeLamGrammarExtension            = noExtG
+  , _typeAppGrammarExtension            = noExtG
+  , _typeBindingGrammarExtension        = noExtG
+  , _typeContentBindingGrammarExtension = noExtG
 
-  , _typeGrammarExtension = voidG
+  , _typeGrammarExtension = noExtG
   }
 
 patternDeps :: PatternGrammarDependencies DefaultPhase
 patternDeps = PatternGrammarDependencies
   { _patternBindingFor = var
 
-  , _sumPatternGrammarExtension     = voidG
-  , _productPatternGrammarExtension = voidG
-  , _unionPatternGrammarExtension   = voidG
-  , _bindingPatternGrammarExtension = voidG
-  , _bindGrammarExtension           = voidG
+  , _sumPatternGrammarExtension     = noExtG
+  , _productPatternGrammarExtension = noExtG
+  , _unionPatternGrammarExtension   = noExtG
+  , _bindingPatternGrammarExtension = noExtG
+  , _bindGrammarExtension           = noExtG
 
-  , _patternGrammarExtension = voidG
+  , _patternGrammarExtension = noExtG
   }
 
 commentedExprDeps :: GrammarDependencies CommentedPhase
@@ -166,16 +166,16 @@ commentedExprDeps = GrammarDependencies
   , _exprTypeBindingFor        = tyVar
   , _exprTypeContentBindingFor = shortHash
 
-  , _lamGrammarExtension            = voidG
-  , _appGrammarExtension            = voidG
-  , _bindingGrammarExtension        = voidG
-  , _contentBindingGrammarExtension = voidG
-  , _caseAnalysisGrammarExtension   = voidG
-  , _sumGrammarExtension            = voidG
-  , _productGrammarExtension        = voidG
-  , _unionGrammarExtension          = voidG
-  , _bigLamGrammarExtension         = voidG
-  , _bigAppGrammarExtension         = voidG
+  , _lamGrammarExtension            = noExtG
+  , _appGrammarExtension            = noExtG
+  , _bindingGrammarExtension        = noExtG
+  , _contentBindingGrammarExtension = noExtG
+  , _caseAnalysisGrammarExtension   = noExtG
+  , _sumGrammarExtension            = noExtG
+  , _productGrammarExtension        = noExtG
+  , _unionGrammarExtension          = noExtG
+  , _bigLamGrammarExtension         = noExtG
+  , _bigAppGrammarExtension         = noExtG
 
   , _exprGrammarExtension = commentedExpr commentedExprDeps commentedTypeDeps commentedPatternDeps
   }
@@ -185,16 +185,16 @@ commentedTypeDeps = TypeGrammarDependencies
   { _typeBindingFor        = tyVar
   , _typeContentBindingFor = shortHash
 
-  , _namedGrammarExtension              = voidG
-  , _arrowGrammarExtension              = voidG
-  , _sumTGrammarExtension               = voidG
-  , _productTGrammarExtension           = voidG
-  , _unionTGrammarExtension             = voidG
-  , _bigArrowGrammarExtension           = voidG
-  , _typeLamGrammarExtension            = voidG
-  , _typeAppGrammarExtension            = voidG
-  , _typeBindingGrammarExtension        = voidG
-  , _typeContentBindingGrammarExtension = voidG
+  , _namedGrammarExtension              = noExtG
+  , _arrowGrammarExtension              = noExtG
+  , _sumTGrammarExtension               = noExtG
+  , _productTGrammarExtension           = noExtG
+  , _unionTGrammarExtension             = noExtG
+  , _bigArrowGrammarExtension           = noExtG
+  , _typeLamGrammarExtension            = noExtG
+  , _typeAppGrammarExtension            = noExtG
+  , _typeBindingGrammarExtension        = noExtG
+  , _typeContentBindingGrammarExtension = noExtG
 
   , _typeGrammarExtension = commentedTyp commentedTypeDeps
   }
@@ -203,11 +203,11 @@ commentedPatternDeps :: PatternGrammarDependencies CommentedPhase
 commentedPatternDeps = PatternGrammarDependencies
   { _patternBindingFor = var
 
-  , _sumPatternGrammarExtension     = voidG
-  , _productPatternGrammarExtension = voidG
-  , _unionPatternGrammarExtension   = voidG
-  , _bindingPatternGrammarExtension = voidG
-  , _bindGrammarExtension           = voidG
+  , _sumPatternGrammarExtension     = noExtG
+  , _productPatternGrammarExtension = noExtG
+  , _unionPatternGrammarExtension   = noExtG
+  , _bindingPatternGrammarExtension = noExtG
+  , _bindGrammarExtension           = noExtG
 
   , _patternGrammarExtension = commentedPattern commentedPatternDeps commentedTypeDeps
   }
