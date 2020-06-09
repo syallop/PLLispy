@@ -12,15 +12,36 @@ Maintainer  : syallop@gmail.com
 Stability   : experimental
 
 A Grammar for PL with a lisp-like syntax.
+
+This module:
+- Re-exposes more general grammars for defining expressions/ type grammars
+- Provides example implementations of transforming arbitrary Grammars into
+  parsers/ printers.
+- Defines some concrete expression/ type/ pattern grammars.
 -}
 module PLLispy
   ( module X
+
+  -- * Interpret Grammars
   , toParser
   , toPrinter
 
+  -- * Concrete Lispy Grammars
+  --
+  -- These Grammars are configured to parse lispy expressions, types and
+  -- grammars into concrete phases.
+  --
+  -- Grammars generalised over the type of phase have a ' suffix.
+  --
+  -- Custom Grammars can be configured from PLLispy.{Expr,Type,Pattern}.
   , lispyExpr
   , lispyType
   , lispyPattern
+
+  -- * General Lispy Grammars
+  , lispyExpr'
+  , lispyType'
+  , lispyPattern'
   )
   where
 
@@ -47,6 +68,7 @@ import PL.Expr
 import PL.Var
 import PL.Type
 import PL.FixPhase
+import PL.HashStore
 import PL.Name
 import PL.Pattern
 import PL.TyVar
@@ -66,8 +88,49 @@ import Control.Applicative
 import Control.Monad
 import Data.Monoid
 
-{-
+-- | Parse an expression in the concrete CommentedPhase which is suitable to be
+-- read/ written by humans. It allows comments surrounding expressions, types
+-- and patterns and uses (potentially ambiguous) short-hashes for
+-- content-bindings.
+--
+-- For more details see lispyExpr' which does not constrain a specific phase.
 lispyExpr
+  :: Grammar (ExprFor CommentedPhase)
+lispyExpr = lispyExpr'
+
+-- | Parse an expression in any phase which is suitable to be read/ written by humans.
+-- It allows comments surrounding expressions, types and patterns and uses
+-- (potentially ambiguous) short-hashes for content-bindings.
+--
+-- The CommentedPhase is expected to conform to this Grammar - see lispyExpr.
+--
+-- - Bindings are debruijn indices counting the number of abstractions away a
+--   variable was bound.
+--
+-- - Abstractions are unnamed and annotate the type/ kind of variable they
+--   abstract. I.E. Expression abstractions are Types and type abstractions are
+--   Kinds.
+--
+-- - ContentBindings - which refer to things by their content addressed hash -
+--   are - potentially ambiguous - ShortHashes that may omit their algorithm and
+--   trailing characters in an attempt to be more human readable.
+--
+-- - Expressions, types and patterns may be annotated with a comment using
+--   quotation marks.
+--
+-- - Types are lispyTypes and patterns are lispyPatterns
+--
+-- - There are no other permitted extensions.
+--
+-- - All other constructors take the form:
+--   TOKEN ARGS*
+--
+--   where:
+--   - The TOKEN character identifies the sort of expression/ type/ pattern.
+--   - The token is followed by zero or many space separated arguments
+--   - Unambiguous things may be surrounded by parenthesis; Ambiguous things
+--     must be surrounded by parenthesis.
+lispyExpr'
   :: forall phase
    . ( Show (ExprFor phase)
      , Show (TypeFor phase)
@@ -82,77 +145,189 @@ lispyExpr
      , TyVar           ~ TypeBindingFor phase
      , ShortHash       ~ TypeContentBindingFor phase
 
-     , Void ~ LamExtension phase
-     , Void ~ AppExtension phase
-     , Void ~ BindingExtension phase
-     , Void ~ ContentBindingExtension phase
-     , Void ~ CaseAnalysisExtension phase
-     , Void ~ SumExtension phase
-     , Void ~ ProductExtension phase
-     , Void ~ UnionExtension phase
-     , Void ~ BigLamExtension phase
-     , Void ~ BigAppExtension phase
+     , NoExt ~ LamExtension phase
+     , NoExt ~ AppExtension phase
+     , NoExt ~ BindingExtension phase
+     , NoExt ~ ContentBindingExtension phase
+     , NoExt ~ CaseAnalysisExtension phase
+     , NoExt ~ SumExtension phase
+     , NoExt ~ ProductExtension phase
+     , NoExt ~ UnionExtension phase
+     , NoExt ~ BigLamExtension phase
+     , NoExt ~ BigAppExtension phase
 
-     , Void ~ NamedExtension phase
-     , Void ~ ArrowExtension phase
-     , Void ~ SumTExtension phase
-     , Void ~ ProductTExtension phase
-     , Void ~ UnionTExtension phase
-     , Void ~ BigArrowExtension phase
-     , Void ~ TypeLamExtension phase
-     , Void ~ TypeAppExtension phase
-     , Void ~ TypeBindingExtension phase
-     , Void ~ TypeContentBindingExtension phase
+     , NoExt ~ SumPatternExtension phase
+     , NoExt ~ ProductPatternExtension phase
+     , NoExt ~ UnionPatternExtension phase
+     , NoExt ~ BindingPatternExtension phase
+     , NoExt ~ BindExtension phase
+
+     , NoExt ~ NamedExtension phase
+     , NoExt ~ ArrowExtension phase
+     , NoExt ~ SumTExtension phase
+     , NoExt ~ ProductTExtension phase
+     , NoExt ~ UnionTExtension phase
+     , NoExt ~ BigArrowExtension phase
+     , NoExt ~ TypeLamExtension phase
+     , NoExt ~ TypeAppExtension phase
+     , NoExt ~ TypeBindingExtension phase
+     , NoExt ~ TypeContentBindingExtension phase
 
      , (Commented (ExprFor phase)) ~ ExprExtension phase
      , (Commented (TypeFor phase)) ~ TypeExtension phase
      , (Commented (PatternFor phase)) ~ PatternExtension phase
      )
   => Grammar (ExprFor phase)
--}
-lispyExpr :: Grammar (ExprFor CommentedPhase)
-lispyExpr = top $ expr exprDeps typeDeps patternDeps
+lispyExpr' = top $ expr exprDeps typeDeps patternDeps
   where
-    exprDeps :: GrammarDependencies CommentedPhase
+    exprDeps :: GrammarDependencies phase
     exprDeps = defaultGrammarDependencies
 
-    typeDeps :: TypeGrammarDependencies CommentedPhase
+    typeDeps :: TypeGrammarDependencies phase
     typeDeps = defaultTypeGrammarDependencies
 
-    patternDeps :: PatternGrammarDependencies CommentedPhase
+    patternDeps :: PatternGrammarDependencies phase
     patternDeps = defaultPatternGrammarDependencies
 
-{-
-lispyType
+-- | Parse a type in the concrete CommentedPhase which is suitable to be read/
+-- written by humans. It allows commentes surrounding types and uses
+-- (potentially ambiguous) short-hashes for content-bindings.
+--
+-- For more details see lispyType' which does not constrain a specific phase.
+lispyType :: Grammar (TypeFor CommentedPhase)
+lispyType = lispyType'
+
+-- | Parse a type in any phase which is suitable to be read/ written by humans.
+-- It allows commentes surrounding types and uses
+-- (potentially ambiguous) short-hashes for content-bindings.
+--
+-- The CommentedPhase is expected to conform to this Grammar - see lispyType.
+--
+-- - Type Bindings are debruijn indices counting the number of abstractions away a
+--   type variable was bound.
+--
+-- - Abstractions are unnamed and annotate the kind of variable they
+--   abstract. I.E. Type abstractions are Kinds.
+--
+-- - ContentBindings - which refer to things by their content addressed hash -
+--   are - potentially ambiguous - ShortHashes that may omit their algorithm and
+--   trailing characters in an attempt to be more human readable.
+--
+-- - Types may be annotated with a comment using quotation marks.
+--
+-- - There are no other permitted extensions
+--
+-- - All other constructors take the form:
+--   TOKEN ARGS*
+--
+--   where:
+--   - The TOKEN character identifies the sort of type
+--   - The token is followed by zero or many space separated arguments
+--   - Unambiguous things may be surrounded by parenthesis; Ambiguous things
+--     must be surrounded by parenthesis.
+lispyType'
   :: forall phase
-   . ( TypeConstraints phase
+   . ( Show (TypeFor phase)
+     , Ord (TypeFor phase)
+
+     , TyVar     ~ TypeBindingFor phase
+     , ShortHash ~ TypeContentBindingFor phase
+
+     , NoExt ~ NamedExtension phase
+     , NoExt ~ ArrowExtension phase
+     , NoExt ~ SumTExtension phase
+     , NoExt ~ ProductTExtension phase
+     , NoExt ~ UnionTExtension phase
+     , NoExt ~ BigArrowExtension phase
+     , NoExt ~ TypeLamExtension phase
+     , NoExt ~ TypeAppExtension phase
+     , NoExt ~ TypeBindingExtension phase
+     , NoExt ~ TypeContentBindingExtension phase
+
+     , (Commented (TypeFor phase)) ~ TypeExtension phase
      )
   => Grammar (TypeFor phase)
--}
-lispyType :: Grammar (TypeFor CommentedPhase)
-lispyType = top $ typ typeDeps
+lispyType' = top $ typ typeDeps
   where
-    typeDeps :: TypeGrammarDependencies CommentedPhase
+    typeDeps :: TypeGrammarDependencies phase
     typeDeps = defaultTypeGrammarDependencies
 
-{-
-lispyPattern
+-- | Parse a pattern in the concrete CommentedPhase which is suitable to be
+-- read/ written by humans. It allows commentes surrounding patters and uses
+-- (potentially ambiguous) short-hashes for content-bindings.
+--
+-- For more details see lispyPattern' which does not constrain a specific phase.
+lispyPattern :: Grammar (PatternFor CommentedPhase)
+lispyPattern = lispyPattern'
+
+-- | Parse a pattern in any phase which is suitable to be read/ written by
+-- humans.
+-- It allows comments surrounding patterns and uses (potentially ambiguous)
+-- short-hashes for content-bindings.
+--
+-- The CommentedPhase is expected to conform to this Grammar - see lispyPattern.
+--
+-- - Bindings are debruijn indices counting the number of abstractions away a
+--   variable was bound.
+--
+-- - ContentBindings - which refer to things by their content addressed hash -
+--   are - potentially ambiguous - ShortHashes that may omit their algorithm and
+--   trailing characters in an attempt to be more human readable.
+--
+-- - Types and patterns may be annotated with a comment using
+--   quotation marks.
+--
+-- - Types are lispyTypes
+--
+-- - There are no other permitted extensions.
+--
+-- - All other constructors take the form:
+--   TOKEN ARGS*
+--
+--   where:
+--   - The TOKEN character identifies the sort of type/ pattern.
+--   - The token is followed by zero or many space separated arguments
+--   - Unambiguous things may be surrounded by parenthesis; Ambiguous things
+--     must be surrounded by parenthesis.
+lispyPattern'
   :: forall phase
-   . ( PatternConstraints phase
+   . ( Show (PatternFor phase)
+     , Ord (PatternFor phase)
+
+     , Var       ~ BindingFor phase
+     , TyVar     ~ TypeBindingFor phase
+     , ShortHash ~ TypeContentBindingFor phase
+
+     , NoExt ~ SumPatternExtension phase
+     , NoExt ~ ProductPatternExtension phase
+     , NoExt ~ UnionPatternExtension phase
+     , NoExt ~ BindingPatternExtension phase
+     , NoExt ~ BindExtension phase
+
+     , NoExt ~ NamedExtension phase
+     , NoExt ~ ArrowExtension phase
+     , NoExt ~ SumTExtension phase
+     , NoExt ~ ProductTExtension phase
+     , NoExt ~ UnionTExtension phase
+     , NoExt ~ BigArrowExtension phase
+     , NoExt ~ TypeLamExtension phase
+     , NoExt ~ TypeAppExtension phase
+     , NoExt ~ TypeBindingExtension phase
+     , NoExt ~ TypeContentBindingExtension phase
+
+     , (Commented (TypeFor phase)) ~ TypeExtension phase
+     , (Commented (PatternFor phase)) ~ PatternExtension phase
      )
   => Grammar (PatternFor phase)
--}
-lispyPattern :: Grammar (PatternFor CommentedPhase)
-lispyPattern = top $ pattern patternDeps typeDeps
+lispyPattern' = top $ pattern patternDeps typeDeps
   where
-    patternDeps :: PatternGrammarDependencies CommentedPhase
+    patternDeps :: PatternGrammarDependencies phase
     patternDeps = defaultPatternGrammarDependencies
 
-    typeDeps :: TypeGrammarDependencies CommentedPhase
+    typeDeps :: TypeGrammarDependencies phase
     typeDeps = defaultTypeGrammarDependencies
 
-
--- | Convert a Grammar to a Parser that accepts it.
+-- | Convert any Grammar to a Parser that accepts it.
 toParser :: G.Grammar a -> Parser a
 toParser = toParser'
   where
@@ -262,6 +437,7 @@ grammarExpects (Reversible g0) = case g0 of
 rmapPrinter :: Iso a b -> Printer a -> Printer b
 rmapPrinter iso (Printer p) = Printer $ backwards iso >=> p
 
+-- | Convert any Grammar to a Printer that pretty-prints it.
 toPrinter :: Grammar a -> Printer a
 toPrinter (Reversible grammar) = case grammar of
   ReversibleInstr i
