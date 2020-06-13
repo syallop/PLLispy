@@ -32,6 +32,7 @@ module PLLispy.Type
   , arrowTyp
   , typeBindingTyp
   , typeContentBindingTyp
+  , typeSelfBindingTyp
   , namedTyp
   , sumTyp
   , productTyp
@@ -39,6 +40,7 @@ module PLLispy.Type
   , bigArrowTyp
   , typeLamTyp
   , typeAppTyp
+  , typeMuTyp
   , typeExtensionTyp
 
   -- * Type extension Grammars
@@ -170,6 +172,18 @@ typeContentBindingTyp =
   typeContentBindingIso \$/ typeContentBindingExtension
                         \*/ typeContentBinding
 
+-- | The type self binding constructor refers to 'itself'.
+--
+typeSelfBindingTyp
+  :: ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+typeSelfBindingTyp =
+  self */ (typeSelfBindingIso \$/ noExtG)
+  where
+    self = charIs '%'
+
 -- | The Named type constructor takes the form:
 --
 -- UPPER CHARACTERS*
@@ -269,6 +283,21 @@ typeAppTyp =
   where
     bigApp = textIs "/@"
 
+-- | The Type Mu type constructor takes the form:
+--
+-- MU TYPE
+typeMuTyp
+  :: ( TypeImplicits phase
+     , TypeConstraints phase
+     )
+  => Grammar (TypeFor phase)
+typeMuTyp =
+  mu */ (typeMuIso \$/ noExtG
+                   \*/ (spaceAllowed */ (parensPreferred kindAbs))
+                   \*/ (spacePreferred */ sub typI))
+  where
+    mu = textIs "μ"
+
 -- | Defer to the implicit Grammar for type extensions.
 typeExtensionTyp
   :: ( TypeImplicits phase
@@ -349,6 +378,7 @@ typI = level unambiguousTypI ambiguousTypI
       [ namedTyp
       , typeContentBindingTyp
       , typeBindingTyp
+      , typeSelfBindingTyp
       , typeExtensionTyp
       --, commentedTyp
       ]
@@ -357,6 +387,7 @@ typI = level unambiguousTypI ambiguousTypI
     ambiguousTypI =
       [ typeLamTyp
       , typeAppTyp
+      , typeMuTyp
       , arrowTyp
       , sumTyp
       , productTyp

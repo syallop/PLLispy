@@ -28,6 +28,7 @@ import PL.Test.Pattern.Sum
 import PL.Test.Pattern.Product
 import PL.Test.Pattern.Union
 import PL.Test.Pattern.Binding
+import PL.Test.Pattern.SelfType
 
 import Data.Text
 import qualified Data.Text as Text
@@ -54,6 +55,12 @@ sources = TestPatternSources
 
   , _bindingTestCases = TestBindingSources
       { _bindingTestCase = "0"
+      }
+
+  , _selfTypeTestCases = TestSelfTypeSources
+      { _emptyProductSource = "*"
+      , _bindProductSource  = "(* ?)"
+      , _nestedBindProductSource = "(* (* ?))"
       }
   }
 

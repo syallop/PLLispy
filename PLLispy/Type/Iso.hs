@@ -13,7 +13,9 @@ module PLLispy.Type.Iso
   , bigArrowIso
   , typeLamIso
   , typeAppIso
+  , typeMuIso
   , typeBindingIso
+  , typeSelfBindingIso
   , typeContentBindingIso
   , typeExtensionIso
 
@@ -38,6 +40,7 @@ import PL.Kind
 import PL.Name
 import PL.TyVar
 import PL.Type
+import PL.FixPhase
 import PL.Var
 
 import PLGrammar
@@ -144,6 +147,17 @@ typeAppIso = Iso
                      _ -> Nothing
   }
 
+typeMuIso :: Iso (NoExt, (Kind, TypeFor phase)) (TypeFor phase)
+typeMuIso = Iso
+  {_forwards = \(ext, (expectKind, itselfTy))
+                -> Just . TypeMuExt ext expectKind $ itselfTy
+  ,_backwards = \ty
+                -> case ty of
+                    TypeMuExt ext expectKind itselfTy
+                      -> Just (ext, (expectKind, itselfTy))
+                    _ -> Nothing
+  }
+
 typeBindingIso :: Iso (TypeBindingExtension phase, TypeBindingFor phase) (TypeFor phase)
 typeBindingIso = Iso
   {_forwards = \(ext, tb)
@@ -154,6 +168,18 @@ typeBindingIso = Iso
                        -> Just (ext, tb)
                      _ -> Nothing
   }
+
+typeSelfBindingIso :: Iso NoExt (TypeFor phase)
+typeSelfBindingIso = Iso
+  {_forwards = \ext
+                -> Just . TypeSelfBindingExt $ ext
+  ,_backwards = \ty
+                -> case ty of
+                     TypeSelfBindingExt ext
+                       -> Just ext
+                     _ -> Nothing
+  }
+
 
 typeContentBindingIso :: Iso (TypeContentBindingExtension phase, TypeContentBindingFor phase) (TypeFor phase)
 typeContentBindingIso = Iso

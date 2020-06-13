@@ -33,6 +33,7 @@ import PL.Test.Expr.Natural
 import PL.Test.Expr.Product
 import PL.Test.Expr.Sum
 import PL.Test.Expr.Union
+import PL.Test.Expr.SelfTypes
 
 import Data.Text
 import qualified Data.Text as Text
@@ -194,8 +195,43 @@ sources = TestExprSources
           \   - And a recursive occurance of the list of the given type.\"\n\n\
           \ΛKIND (+0 (*) (*) (* ?0 (/@List ?0)))"
       }
-  }
 
+  , _selfTypeTestCases = TestSelfTypeSources
+      { _selfTypesCanBeMentionedTestCase =
+          "\"Self types can be mentioned anonymously wherever types are allowed.\n\
+          \This sum expression contains a Nat-like type as its second (unused) alternative.\"\n\n\
+          \+0 (*) (*) (μKIND (+ (*) %))"
+      , _selfTypesCanBeReturnedTestCase =
+          "\"Self types can be returned from functions. This Lambda expression\n\
+          \accepts an expression with a Nat-like type and returns it.\"\n\n\
+          \λ(μKIND (+ (*) %)) 0"
+
+      , _selfTypesCanBeConstructedTestCase =
+        "\"Self types can be constructed from conforming expressions.\n\
+        \This expression constructs a Zero-like expression and passes it\n\
+        \to a function expecting a Nat-like type.\"\n\n\
+        \@ (λ(μKIND (+ (*) %)) 0)\n\
+        \  (+0 (*)\n\
+        \      (*) (μKIND (+ (*) %)))"
+
+      , _nestedSelfTypesCanBeConstructedTestCase =
+        "\"Nested self types can be constructed from conforming expressions.\n\
+        \This expression constructs a One-like expression and passes it\n\
+        \to a function expecting a Nat-like type.\"\n\n\
+        \@ (λ(μKIND (+ (*) %)) 0)\n\
+        \  (+1 (+0 (*)\n\
+        \          (*) (μKIND (+ (*) %)))\n\
+        \      (*) (μKIND (+ (*) %)))"
+
+      , _selfTypesCanBeDeconstructedTestCase =
+          "\"Self types can be deconstructed by matching on their definitions.\"\n\
+          \λ(μKIND (+ (*) %))\n\
+          \  (CASE 0\n\
+          \    (| (+0 ?) (+0 (*) (*) (*)))\n\
+          \    (| (+1 ?) (+1 (*) (*) (*)))\n\
+          \  )"
+      }
+  }
 
 falseTermText, trueTermText, falsePatText, truePatText :: Text
 falseTermText = "+0 (*) (*) (*)"
