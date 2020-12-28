@@ -66,6 +66,31 @@ module PLLispy.Type
 
 import Prelude hiding (takeWhile)
 
+
+-- Lispy
+import PLLispy.Kind
+import PLLispy.Level
+import PLLispy.Name
+import PLLispy.Type.Dep
+import PLLispy.Type.Iso
+
+-- Core PL
+import PL.Commented
+import PL.Expr
+import PL.FixPhase
+import PL.Kind
+import PL.Name
+import PL.TyVar
+import PL.Type hiding (arrowise)
+
+-- Other PL
+import PLGrammar
+import PLHash
+import PLHash.Short
+import Reversible
+import Reversible.Iso
+
+-- Other
 import Control.Applicative
 import Data.Char
 import Data.List.NonEmpty (NonEmpty)
@@ -74,24 +99,6 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 
-import PLLispy.Type.Iso
-import PLLispy.Type.Dep
-import PLLispy.Kind
-import PLLispy.Level
-import PLLispy.Name
-
-import PLGrammar
-import Reversible.Iso
-import Reversible
-
-import PL.Commented
-import PL.Expr
-import PL.HashStore
-import PL.FixPhase
-import PL.Kind
-import PL.Name
-import PL.TyVar
-import PL.Type hiding (arrowise)
 
 defaultTypeGrammarDependencies
   :: ( TypeConstraints phase

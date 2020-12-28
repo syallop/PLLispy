@@ -23,15 +23,18 @@ module PLLispy.Name
   )
   where
 
+-- Core PL
 import PL.Name
-import PL.Hash
 import PL.Var
-import PL.HashStore
 
+-- Other PL
+import PLHash
+import PLHash.Short
 import PLGrammar
 import Reversible
 import Reversible.Iso
 
+-- Other
 import Data.Text (Text)
 import qualified Data.Text as Text
 

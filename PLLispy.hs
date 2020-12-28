@@ -45,6 +45,7 @@ module PLLispy
   )
   where
 
+-- Lispy
 import PLLispy.Case      as X
 import PLLispy.Expr      as X
 import PLLispy.Kind      as X
@@ -55,28 +56,30 @@ import PLLispy.Expr.Dep  as X
 import PLLispy.Type.Dep  as X
 import PLLispy.Pattern.Dep  as X
 
-import PLGrammar
-import PLLabel
-import Reversible
-import Reversible.Iso
-import PLPrinter
-import PLParser
-import PLParser.Cursor
-import PLLabel
-
+-- Core PL
+import PL.Commented
 import PL.Expr
-import PL.Var
-import PL.Type
 import PL.FixPhase
-import PL.HashStore
 import PL.Name
 import PL.Pattern
 import PL.TyVar
-import PL.Commented
+import PL.Type
+import PL.Var
 
+-- Other PL
+import PLHash.Short
+import PLGrammar
+import PLLabel
+import PLLabel
+import PLParser
+import PLParser.Cursor
+import PLPrinter
+import Reversible
+import Reversible.Iso
 import qualified PLGrammar as G
 import qualified PLParser  as P
 
+-- Other
 import qualified Data.List as List
 import qualified Data.Text as Text
 import qualified Data.Map  as Map

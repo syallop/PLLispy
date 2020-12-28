@@ -64,40 +64,44 @@ module PLLispy.Expr
   )
   where
 
+-- Lispy
+import PLLispy.Case
+import PLLispy.Expr.Dep
+import PLLispy.Expr.Iso
+import PLLispy.Kind
+import PLLispy.Level
+import PLLispy.Name
+import PLLispy.Pattern
+import PLLispy.Pattern.Dep
+import PLLispy.Type
+import PLLispy.Type.Dep
+
+-- Core PL
+import PL.Case
+import PL.Commented
+import PL.Expr hiding (appise,lamise)
+import PL.FixPhase
+import PL.Kind
+import PL.Name
+import PL.Pattern
+import PL.TyVar
+import PL.Type
+import PL.Var
+
+-- Other PL
+import PLHash.Short
+import PLGrammar
+import PLLabel
+import Reversible
+import Reversible.Iso
+
+-- Other
 import Control.Applicative
 import Data.List.NonEmpty (NonEmpty (..),uncons)
 import Data.Text
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as Set
 
-import PLLispy.Case
-import PLLispy.Expr.Iso
-import PLLispy.Expr.Dep
-import PLLispy.Type.Dep
-import PLLispy.Pattern.Dep
-import PLLispy.Kind
-import PLLispy.Level
-import PLLispy.Name
-import PLLispy.Type
-import PLLispy.Pattern
-
-import PL.Case
-import PL.Commented
-import PL.Expr hiding (appise,lamise)
-import PL.Hash
-import PL.Kind
-import PL.Name
-import PL.TyVar
-import PL.Pattern
-import PL.Type
-import PL.Var
-import PL.HashStore
-import PL.FixPhase
-
-import PLGrammar
-import PLLabel
-import Reversible
-import Reversible.Iso
 
 defaultGrammarDependencies
   :: ( Constraints phase

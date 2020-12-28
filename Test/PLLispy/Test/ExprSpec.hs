@@ -28,24 +28,16 @@ module PLLispy.Test.ExprSpec
   )
   where
 
+-- Core PL
 import PL
 import PL.Case
-import PL.Pattern
 import PL.Commented
 import PL.Error
 import PL.Expr
-import PL.Kind
-import PL.TyVar
-import PL.Type
 import PL.FixPhase
+import PL.Kind
 import PL.Name
-import PL.Hash
-import PL.HashStore
-import PL.Var
-import PL.TypeCtx
-
-import PL.Test.ExprTestCase
-import PL.Test.Parsing.Expr
+import PL.Pattern
 import PL.Test.Expr
 import PL.Test.Expr.BigLam
 import PL.Test.Expr.Boolean
@@ -55,22 +47,33 @@ import PL.Test.Expr.Natural
 import PL.Test.Expr.Product
 import PL.Test.Expr.Sum
 import PL.Test.Expr.Union
+import PL.Test.ExprTestCase
+import PL.Test.Parsing.Expr
 import PL.Test.Source
+import PL.TyVar
+import PL.Type
+import PL.TypeCtx
+import PL.Var
 
+-- PL Lispy
 import PLLispy
 import PLLispy.Expr
-import PLLispy.Type
-import PLLispy.Test.Sources.Expr
 import PLLispy.Level
 import PLLispy.Name
 import PLLispy.Pattern
+import PLLispy.Test.Sources.Expr
+import PLLispy.Type
 
+-- Other PL
 import PLGrammar
+import PLHash
+import PLParser
 import PLPrinter
 import PLPrinter.Doc
-import PLParser
+import PLStore.Hash
 import Reversible
 
+-- Other
 import Data.Text
 import qualified Data.Text as Text
 import Data.Monoid hiding (Product, Sum)

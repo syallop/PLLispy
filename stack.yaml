@@ -5,17 +5,31 @@ packages:
 - .
 extra-deps:
 - git: https://github.com/syallop/PLCore
-  commit: f168908c2f4a96cda3827f94edf2db096b670d75
+  commit: 359f517d0d467b78b5376090810419b8a0597bed
+
 - git: https://github.com/syallop/PLParser
   commit: cba283c6e0e286a9d3df785f3fdf652449d912cd
+
 - git: https://github.com/syallop/PLGrammar
   commit: ece33dda877ed6b2199ebc6528fdc825302b3978
+
 - git: https://github.com/syallop/Reversible
   commit: 84188a89af962716dc0534d552da715305cb0cf5
+
 - git: https://github.com/syallop/PLLabel
   commit: 678354d723effe569aae83623d25191c25e219a0
+
 - git: https://github.com/syallop/PLPrinter
   commit: 29c1fc4fe5f33086bed4855e016aa56aa80264af
+
+- git: https://github.com/syallop/PLHash
+  commit: 8b2c8d586f55813851740dc64e24677db42eef77
+
+- git: https://github.com/syallop/PLStore
+  commit: 3406f7f2e6eb15c83eebb689a08b871f21c2c0d3
+  subdirs:
+    - Store
+    - Hash
 - git: https://github.com/syallop/DSL-Compose.git
   commit: 8e49641f049c586e21c36c6982f51670082e1e3f
 - pretty-tree-0.1.0.0@sha256:49b0e17008f9d30328db2bcc2958f3a7b78d154d2335c2dbaa2073e237b524ae,668

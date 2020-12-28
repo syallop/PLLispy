@@ -42,6 +42,34 @@ module PLLispy.Pattern
   )
   where
 
+-- Lispy
+import PLLispy.Kind
+import PLLispy.Level
+import PLLispy.Name
+import PLLispy.Pattern.Dep
+import PLLispy.Pattern.Iso
+import PLLispy.Type
+import PLLispy.Type
+
+-- Core PL
+import PL.Case
+import PL.Commented
+import PL.Expr hiding (appise,lamise)
+import PL.FixPhase
+import PL.Kind
+import PL.Name
+import PL.Pattern
+import PL.TyVar
+import PL.Type
+import PL.Var
+
+-- Other PL
+import PLHash.Short
+import PLGrammar
+import Reversible
+import Reversible.Iso
+
+-- Other
 import Control.Applicative
 import Data.List.NonEmpty (NonEmpty (..),uncons)
 import Data.Text (Text)
@@ -49,29 +77,6 @@ import qualified Data.List.NonEmpty
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as Set
 
-import PLGrammar
-import Reversible
-import Reversible.Iso
-
-import PLLispy.Kind
-import PLLispy.Type
-import PLLispy.Name
-import PLLispy.Level
-import PLLispy.Pattern.Iso
-import PLLispy.Pattern.Dep
-import PLLispy.Type
-
-import PL.Case
-import PL.Commented
-import PL.Expr hiding (appise,lamise)
-import PL.Pattern
-import PL.Kind
-import PL.FixPhase
-import PL.TyVar
-import PL.HashStore
-import PL.Name
-import PL.Type
-import PL.Var
 
 defaultPatternGrammarDependencies
   :: ( PatternConstraints phase

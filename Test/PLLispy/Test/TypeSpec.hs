@@ -7,43 +7,45 @@
   #-}
 module PLLispy.Test.TypeSpec where
 
+-- Core PL
 import PL
-import PL.Var
-import PL.Type
-import PL.Expr
-import PL.TyVar
-import PL.Error
 import PL.Commented
-import PL.TypeCtx
+import PL.Error
+import PL.Expr
 import PL.FixPhase
 import PL.Name
-
+import PL.Pattern
 import PL.Test.Parsing.Type
+import PL.Test.Source
 import PL.Test.Type
 import PL.Test.TypeTestCase
-import PL.Test.Source
-import PL.Pattern
-import PL.HashStore
+import PL.TyVar
+import PL.Type
+import PL.TypeCtx
+import PL.Var
 
+-- PL Lispy
 import PLLispy
-import PLLispy.Test.Sources.Type
-import PLLispy.Test.ExprSpec
 import PLLispy.Expr
-import PLLispy.Type
-import PLLispy.Type
 import PLLispy.Level
+import PLLispy.Test.ExprSpec
+import PLLispy.Test.Sources.Type
+import PLLispy.Type
+import PLLispy.Type
 
+-- Other PL
+import PLStore.Hash
+import PLGrammar
 import PLParser
 import PLPrinter
 import PLPrinter.Doc
-import PLGrammar
 
-import Data.Text
+-- Other
 import Data.Maybe
-
+import Data.Text
 import qualified Data.List as List
-import qualified Data.Text as Text
 import qualified Data.Map as Map
+import qualified Data.Text as Text
 import qualified Data.Text as Text
 
 import Control.Monad
