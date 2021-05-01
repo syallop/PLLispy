@@ -8,7 +8,7 @@ extra-deps:
   commit: 359f517d0d467b78b5376090810419b8a0597bed
 
 - git: https://github.com/syallop/PLParser
-  commit: cba283c6e0e286a9d3df785f3fdf652449d912cd
+  commit: a392db9fdc97022cb3adb33c708fb065c1aedff9
 
 - git: https://github.com/syallop/PLGrammar
   commit: ece33dda877ed6b2199ebc6528fdc825302b3978

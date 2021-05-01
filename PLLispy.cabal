@@ -44,7 +44,7 @@ library
                      , PL         >= 0.2
                      , PLGrammar  >= 0.4
                      , PLLabel    >= 0.1
-                     , PLParser   >= 0.1
+                     , PLParser   >= 0.2
                      , PLPrinter  >= 0.3
                      , PLHash
                      , Reversible >= 0.1
@@ -82,7 +82,7 @@ test-suite hspec
                    , PL
                    , PLGrammar >= 0.4
                    , Reversible
-                   , PLParser
+                   , PLParser >= 0.2
                    , PLPrinter
                    , PLLispy
                    , PLHash
