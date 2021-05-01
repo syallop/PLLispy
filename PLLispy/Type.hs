@@ -78,25 +78,19 @@ import PLLispy.Type.Iso
 import PL.Commented
 import PL.Expr
 import PL.FixPhase
-import PL.Kind
 import PL.Name
 import PL.TyVar
 import PL.Type hiding (arrowise)
 
 -- Other PL
 import PLGrammar
-import PLHash
 import PLHash.Short
+import PLLabel
 import Reversible
 import Reversible.Iso
 
 -- Other
-import Control.Applicative
 import Data.Char
-import Data.List.NonEmpty (NonEmpty)
-import Data.Maybe
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Set as Set
 import qualified Data.Text as Text
 
 
@@ -148,7 +142,7 @@ arrowTyp
      , TypeConstraints phase
      )
   => Grammar (TypeFor phase)
-arrowTyp =
+arrowTyp = label (enhancingLabel "Arrow") $
   arrow */ (arrowIso \$/ arrowExtension
                      \*/ (spaceAllowed */ sub typI)
                      \*/ (spacePreferred */ sub typI))
@@ -162,7 +156,7 @@ typeBindingTyp
      , TypeConstraints phase
      )
   => Grammar (TypeFor phase)
-typeBindingTyp =
+typeBindingTyp = label (enhancingLabel "Type Binding") $
   typeBindingIso \$/ typeBindingExtension
                  \*/ typeBinding
 
@@ -175,7 +169,7 @@ typeContentBindingTyp
      , TypeConstraints phase
      )
   => Grammar (TypeFor phase)
-typeContentBindingTyp =
+typeContentBindingTyp = label (enhancingLabel "Type Content Binding") $
   typeContentBindingIso \$/ typeContentBindingExtension
                         \*/ typeContentBinding
 
@@ -186,7 +180,7 @@ typeSelfBindingTyp
      , TypeConstraints phase
      )
   => Grammar (TypeFor phase)
-typeSelfBindingTyp =
+typeSelfBindingTyp = label (enhancingLabel "Type Self Binding") $
   self */ (typeSelfBindingIso \$/ noExtG)
   where
     self = charIs '%'
@@ -199,7 +193,7 @@ namedTyp
      , TypeConstraints phase
      )
   => Grammar (TypeFor phase)
-namedTyp =
+namedTyp = label (enhancingLabel "Named Type") $
   namedIso \$/ namedExtension
            \*/ typeNameTyp
 
@@ -211,7 +205,7 @@ sumTyp
      , TypeConstraints phase
      )
   => Grammar (TypeFor phase)
-sumTyp =
+sumTyp = label (enhancingLabel "Sum Type") $
   plus */
   (sumTIso \$/ sumTExtension
            \*/ (spaceAllowed */ (sepBy1 spacePreferred $ sub typI)))
@@ -224,7 +218,7 @@ productTyp
      , TypeConstraints phase
      )
   => Grammar (TypeFor phase)
-productTyp =
+productTyp = label (enhancingLabel "Product Type") $
   star */
   (productTIso \$/ productTExtension
                \*/ (spaceAllowed */ sepBy spacePreferred (sub typI)))
@@ -237,7 +231,7 @@ unionTyp
      , TypeConstraints phase
      )
   => Grammar (TypeFor phase)
-unionTyp =
+unionTyp = label (enhancingLabel "Union Type") $
   union */
   (unionTIso \$/ unionTExtension
              \*/ (spaceAllowed */ (setIso \$/ sepBy spacePreferred (sub typI))))
@@ -250,7 +244,7 @@ bigArrowTyp
      , TypeConstraints phase
      )
   => Grammar (TypeFor phase)
-bigArrowTyp =
+bigArrowTyp = label (enhancingLabel "Big Arrow Type") $
   bigArrow */ (bigArrowIso \$/ bigArrowExtension
                            \*/ (spaceAllowed */ parensKind)
                            \*/ (spacePreferred */ sub typI))
@@ -270,7 +264,7 @@ typeLamTyp
      , TypeConstraints phase
      )
   => Grammar (TypeFor phase)
-typeLamTyp =
+typeLamTyp = label (enhancingLabel "Type-Lambda") $
   bigLambda */ (typeLamIso \$/ typeLamExtension
                            \*/ (spaceAllowed */ (parensPreferred kindAbs))
                            \*/ (spacePreferred */ sub typI))
@@ -283,7 +277,7 @@ typeAppTyp
      , TypeConstraints phase
      )
   => Grammar (TypeFor phase)
-typeAppTyp =
+typeAppTyp = label (enhancingLabel "Type-Application") $
   bigApp */ (typeAppIso \$/ typeAppExtension
                         \*/ (spaceAllowed */ sub typI)
                         \*/ (spacePreferred */ sub typI))
@@ -298,7 +292,7 @@ typeMuTyp
      , TypeConstraints phase
      )
   => Grammar (TypeFor phase)
-typeMuTyp =
+typeMuTyp = label (enhancingLabel "Mu Type") $
   mu */ (typeMuIso \$/ noExtG
                    \*/ (spaceAllowed */ (parensPreferred kindAbs))
                    \*/ (spacePreferred */ sub typI))
@@ -348,7 +342,7 @@ commentedTyp tDep =
 -- ?0,?1,?2,...
 tyVar
   :: Grammar TyVar
-tyVar =
+tyVar = label (enhancingLabel "Type Variable") $
   charIs '?' */
   (tyVarIso \$/ natural)
 
@@ -367,9 +361,9 @@ typ
   => TypeGrammarDependencies phase
   -> Level
   -> Grammar (TypeFor phase)
-typ typeGrammarDependencies level =
+typ typeGrammarDependencies typesLevel = label (enhancingLabel "Type") $
   let ?typeGrammarDependencies = typeGrammarDependencies
-   in typI level
+   in typI typesLevel
 
 typI
   :: forall phase
@@ -415,7 +409,7 @@ typeNameTyp = typeNameIso \$/ name
 --
 -- - "U" is not a name as we use it to denote unions.
 name :: Grammar Text.Text
-name = try $ nameIso \$/ charWhen upperAlpha \*/ longestMatching lowerAlpha
+name = label (enhancingLabel "Name") $ try $ nameIso \$/ charWhen upperAlpha \*/ longestMatching lowerAlpha
   where
     reservedWords :: [Text.Text]
     reservedWords = ["U"]
@@ -443,21 +437,10 @@ name = try $ nameIso \$/ charWhen upperAlpha \*/ longestMatching lowerAlpha
                                 | valid c cs
                                  -> Just (c,cs)
 
-                              otherwise
+                              _
                                 -> Nothing
       }
 
 noExtG :: Grammar NoExt
 noExtG = rpure noExt
-
-nonEmptyIso :: Iso [a] (NonEmpty a)
-nonEmptyIso = Iso
-  {_forwards = \xs -> case xs of
-                 []
-                   -> Nothing
-
-                 (head:tail)
-                   -> Just $ head NE.:| tail
-  ,_backwards = Just . NE.toList
-  }
 

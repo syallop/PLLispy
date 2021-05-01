@@ -2,6 +2,7 @@
     MultiWayIf
   , OverloadedStrings
   , GADTs
+  , LambdaCase
   #-}
 module PLLispy.Type.Iso
   ( typeNameIso
@@ -26,14 +27,10 @@ module PLLispy.Type.Iso
   )
   where
 
-import Data.Char
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 
-import PLLispy.Kind
-
-import PL.Case
 import PL.Commented
 import PL.Expr hiding (appise,lamise)
 import PL.Kind
@@ -41,9 +38,7 @@ import PL.Name
 import PL.TyVar
 import PL.Type
 import PL.FixPhase
-import PL.Var
 
-import PLGrammar
 import Reversible.Iso
 
 
@@ -60,79 +55,72 @@ typeNameIso = Iso
 
 namedIso :: Iso (NamedExtension phase, TypeName) (TypeFor phase)
 namedIso = Iso
-  {_forwards = \(ext,typeName)
-                -> Just . NamedExt ext $ typeName
-  ,_backwards = \ty
-                -> case ty of
-                     NamedExt ext typeName
-                       -> Just (ext,typeName)
-                     _ -> Nothing
+  {_forwards = \(ext,name)
+                -> Just . NamedExt ext $ name
+  ,_backwards = \case
+                  NamedExt ext name
+                    -> Just (ext,name)
+                  _ -> Nothing
   }
 
 arrowIso :: Iso (ArrowExtension phase, (TypeFor phase, TypeFor phase)) (TypeFor phase)
 arrowIso = Iso
   {_forwards = \(ext, (fromTy, toTy))
                 -> Just . ArrowExt ext fromTy $ toTy
-  ,_backwards = \ty
-                -> case ty of
-                     ArrowExt ext fromTy toTy
-                       -> Just (ext, (fromTy, toTy))
-                     _ -> Nothing
+  ,_backwards = \case
+                  ArrowExt ext fromTy toTy
+                    -> Just (ext, (fromTy, toTy))
+                  _ -> Nothing
   }
 
 sumTIso :: Iso (SumTExtension phase, NonEmpty (TypeFor phase)) (TypeFor phase)
 sumTIso = Iso
   {_forwards = \(ext,tys)
                 -> Just . SumTExt ext $ tys
-  ,_backwards = \ty
-                -> case ty of
-                     SumTExt ext tys
-                       -> Just (ext,tys)
-                     _ -> Nothing
+  ,_backwards = \case
+                  SumTExt ext tys
+                    -> Just (ext,tys)
+                  _ -> Nothing
   }
 
 productTIso :: Iso (ProductTExtension phase, [TypeFor phase]) (TypeFor phase)
 productTIso = Iso
   {_forwards = \(ext,tys)
                 -> Just . ProductTExt ext $ tys
-  ,_backwards = \ty
-                -> case ty of
-                     ProductTExt ext tys
-                       -> Just (ext,tys)
-                     _ -> Nothing
+  ,_backwards = \case
+                  ProductTExt ext tys
+                    -> Just (ext,tys)
+                  _ -> Nothing
   }
 
 unionTIso :: Iso (UnionTExtension phase, Set.Set (TypeFor phase)) (TypeFor phase)
 unionTIso = Iso
   {_forwards = \(ext,tys)
                 -> Just . UnionTExt ext $ tys
-  ,_backwards = \ty
-                -> case ty of
-                     UnionTExt ext tys
-                       -> Just (ext,tys)
-                     _ -> Nothing
+  ,_backwards = \case
+                  UnionTExt ext tys
+                    -> Just (ext,tys)
+                  _ -> Nothing
   }
 
 bigArrowIso :: Iso (BigArrowExtension phase, (Kind, TypeFor phase)) (TypeFor phase)
 bigArrowIso = Iso
   {_forwards = \(ext, (fromKind, toTy))
                 -> Just . BigArrowExt ext fromKind $ toTy
-  ,_backwards = \ty
-                -> case ty of
-                    BigArrowExt ext fromKind toTy
-                      -> Just (ext, (fromKind, toTy))
-                    _ -> Nothing
+  ,_backwards = \case
+                  BigArrowExt ext fromKind toTy
+                    -> Just (ext, (fromKind, toTy))
+                  _ -> Nothing
   }
 
 typeLamIso :: Iso (TypeLamExtension phase, (Kind, TypeFor phase)) (TypeFor phase)
 typeLamIso = Iso
   {_forwards = \(ext, (fromKind, toTy))
                 -> Just . TypeLamExt ext fromKind $ toTy
-  ,_backwards = \ty
-                -> case ty of
-                    TypeLamExt ext fromKind toTy
-                      -> Just (ext, (fromKind, toTy))
-                    _ -> Nothing
+  ,_backwards = \case
+                  TypeLamExt ext fromKind toTy
+                    -> Just (ext, (fromKind, toTy))
+                  _ -> Nothing
   }
 
 
@@ -140,44 +128,40 @@ typeAppIso :: Iso (TypeAppExtension phase, (TypeFor phase, TypeFor phase)) (Type
 typeAppIso = Iso
   {_forwards = \(ext, (fTy, xTy))
                 -> Just . TypeAppExt ext fTy $ xTy
-  ,_backwards = \ty
-                -> case ty of
-                     TypeAppExt ext fTy xTy
-                       -> Just (ext, (fTy, xTy))
-                     _ -> Nothing
+  ,_backwards = \case
+                  TypeAppExt ext fTy xTy
+                    -> Just (ext, (fTy, xTy))
+                  _ -> Nothing
   }
 
 typeMuIso :: Iso (NoExt, (Kind, TypeFor phase)) (TypeFor phase)
 typeMuIso = Iso
   {_forwards = \(ext, (expectKind, itselfTy))
                 -> Just . TypeMuExt ext expectKind $ itselfTy
-  ,_backwards = \ty
-                -> case ty of
-                    TypeMuExt ext expectKind itselfTy
-                      -> Just (ext, (expectKind, itselfTy))
-                    _ -> Nothing
+  ,_backwards = \case
+                  TypeMuExt ext expectKind itselfTy
+                    -> Just (ext, (expectKind, itselfTy))
+                  _ -> Nothing
   }
 
 typeBindingIso :: Iso (TypeBindingExtension phase, TypeBindingFor phase) (TypeFor phase)
 typeBindingIso = Iso
   {_forwards = \(ext, tb)
                 -> Just . TypeBindingExt ext $ tb
-  ,_backwards = \ty
-                -> case ty of
-                     TypeBindingExt ext tb
-                       -> Just (ext, tb)
-                     _ -> Nothing
+  ,_backwards = \case
+                  TypeBindingExt ext tb
+                    -> Just (ext, tb)
+                  _ -> Nothing
   }
 
 typeSelfBindingIso :: Iso NoExt (TypeFor phase)
 typeSelfBindingIso = Iso
   {_forwards = \ext
                 -> Just . TypeSelfBindingExt $ ext
-  ,_backwards = \ty
-                -> case ty of
-                     TypeSelfBindingExt ext
-                       -> Just ext
-                     _ -> Nothing
+  ,_backwards = \case
+                  TypeSelfBindingExt ext
+                    -> Just ext
+                  _ -> Nothing
   }
 
 
@@ -185,29 +169,27 @@ typeContentBindingIso :: Iso (TypeContentBindingExtension phase, TypeContentBind
 typeContentBindingIso = Iso
   {_forwards = \(ext, c)
                 -> Just . TypeContentBindingExt ext $ c
-  ,_backwards = \ty
-                 -> case ty of
-                      TypeContentBindingExt ext c
-                        -> Just (ext, c)
-                      _ -> Nothing
+  ,_backwards = \case
+                  TypeContentBindingExt ext c
+                    -> Just (ext, c)
+                  _ -> Nothing
   }
 
 typeExtensionIso :: Iso (TypeExtension phase) (TypeFor phase)
 typeExtensionIso = Iso
   {_forwards = \ext
                 -> Just . TypeExtensionExt $ ext
-  ,_backwards = \ty
-                 -> case ty of
-                      TypeExtensionExt ext
-                        -> Just ext
-                      _ -> Nothing
+  ,_backwards = \case
+                  TypeExtensionExt ext
+                    -> Just ext
+                  _ -> Nothing
   }
 
 commentedTypeIso :: Iso (Comment, TypeFor phase) (Commented (TypeFor phase))
 commentedTypeIso = Iso
-  {_forwards = \(c,ty)
-                -> Just . Commented c $ ty
-  ,_backwards = \(Commented c ty) -> Just (c, ty)
+  {_forwards = \(c,t)
+                -> Just . Commented c $ t
+  ,_backwards = \(Commented c t) -> Just (c, t)
   }
 
 

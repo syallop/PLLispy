@@ -16,12 +16,6 @@ module PLLispy.Test.Sources.Type
   )
   where
 
-import PL
-import PL.Expr
-import PL.Var
-import PL.TyVar
-import PL.Type
-
 import PL.Test.Type
 import PL.Test.Type.Arrow
 import PL.Test.Type.BigArrow
@@ -31,11 +25,6 @@ import PL.Test.Type.TypeBinding
 import PL.Test.Type.TypeLam
 import PL.Test.Type.Union
 import PL.Test.Type.Named
-
-import PL.Test.TypeTestCase
-
-import Data.Text
-import qualified Data.Text as Text
 
 -- TODO: Write some tests, implement them here
 sources :: TestTypeSources

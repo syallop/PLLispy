@@ -5,45 +5,31 @@
   #-}
 module PLLispy.Test.PatternSpec where
 
-import PL
 import PL.Commented
 import PL.Var
 import PL.Type
-import PL.Expr
 import PL.FixPhase
-import PL.TyVar
 import PL.Error
-import PL.TypeCtx
 
 import PL.Test.Parsing.Pattern
 import PL.Test.Pattern
-import PL.Test.Pattern
 import PL.Test.PatternTestCase
-import PL.Test.Pattern.Bind
-import PL.Test.Pattern.Sum
-import PL.Test.Pattern.Product
-import PL.Test.Pattern.Union
-import PL.Test.Pattern.Binding
 import PL.Test.Source
 import PL.Pattern
 
 import PLLispy
 import PLLispy.Test.Sources.Pattern
 import PLLispy.Test.ExprSpec
-import PLLispy.Expr
-import PLLispy.Type
-import PLLispy.Pattern
-import PLLispy.Level
 
 import PLParser
+import PLParser.Diagnostics
+import PLParser.State
 import PLPrinter
-import PLPrinter.Doc
 import PLGrammar
 
 import Data.Text
 import Data.Maybe
 
-import qualified Data.List as List
 import qualified Data.Text as Text
 import qualified Data.Map as Map
 
@@ -70,44 +56,24 @@ testKeyPrograms =
     lispyParser :: Text.Text -> Either Error (PatternFor CommentedPhase, Source)
     lispyParser input = let p = toParser lispyPattern
                          in case runParser p input of
-                              ParseSuccess a cursor
-                                -> Right (a, remainder cursor)
+                              Passing st a
+                                -> Right (a, remainder . cursor $ st)
 
                               failure
                                 -> Left . EMsg . ppParseResult (fromMaybe mempty . pprint (toPrinter lispyPattern)) $ failure
 
     ppParseResult
       :: (a -> Doc)
-      -> PLParser.ParseResult a
+      -> PLParser.Parsing a
       -> Doc
     ppParseResult ppA p = case p of
-        PLParser.ParseSuccess a leftovers
-          -> text "Parsed: " <> ppA a <> text "with leftovers" <> document leftovers
+        PLParser.Passing st a
+          -> text "Parsed: " <> ppA a <> text "with leftovers" <> (document . remainder . cursor $ st)
 
-        PLParser.ParseFailure failures cur0
-          -> mconcat $
-               [ text "Parse failure at:"
-               , lineBreak
-
-               , indent1 $ document cur0
-               , lineBreak
-               ]
-               ++
-               if List.null failures
-                 then mempty
-                 else [ text "The failures backtracked from were:"
-                      , lineBreak
-                      , indent1 . mconcat
-                                . fmap (\(cursor,expected) -> mconcat [ document cursor
-                                                                      , document expected
-                                                                      , lineBreak
-                                                                      , lineBreak
-                                                                      ]
-                                      )
-                                . Map.toList
-                                . PLParser.collectFailures
-                                $ failures
-                      ]
+        PLParser.Failing st expected
+          -> document . failureSummary st $ expected
+        _
+          -> text "Parse didnt pass or fail and is either pending or halted waiting for more input."
 
 
 testParsePrint :: Spec
@@ -119,7 +85,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = [ "?"
                                   , "(?)"
                                   ]
-        , _grammar              = patternGrammar
+        , _grammar              = commentedPatternGrammar
         , _shouldParse          = Just Bind
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "?"
@@ -131,7 +97,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = [ "0"
                                   , "(0)"
                                   ]
-        , _grammar              = patternGrammar
+        , _grammar              = commentedPatternGrammar
         , _shouldParse          = Just $ BindingPattern $ VZ
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "0"
@@ -143,7 +109,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["*"
                                   ,"(*)"
                                   ]
-        , _grammar              = patternGrammar
+        , _grammar              = commentedPatternGrammar
         , _shouldParse          = Just EmptyProductPattern
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*"
@@ -154,7 +120,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["* (?)"
                                   ,"(* (?))"
                                   ]
-        , _grammar              = patternGrammar
+        , _grammar              = commentedPatternGrammar
         , _shouldParse          = Just $ ProductPattern [Bind]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*?"
@@ -165,7 +131,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = ["* (?) (?)"
                                   ,"(* (?) (?))"
                                   ]
-        , _grammar              = patternGrammar
+        , _grammar              = commentedPatternGrammar
         , _shouldParse          = Just $ ProductPattern [Bind,Bind]
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "*? ?"
@@ -177,7 +143,7 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         , _input                = [ "+0 (?)"
                                   , "(+0 (?))"
                                   ]
-        , _grammar              = patternGrammar
+        , _grammar              = commentedPatternGrammar
         , _shouldParse          = Just $ SumPattern 0 Bind
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "+0 ?"
@@ -188,14 +154,11 @@ testParsePrint = describe "Lispy specific parse-print behaves" $ do
         { _testCase             = "Bind a singleton union"
         , _input                = [ "U (Foo) (?)"
                                   ]
-        , _grammar              = patternGrammar
+        , _grammar              = commentedPatternGrammar
         , _shouldParse          = Just $ UnionPattern (Named "Foo") $ Bind
         , _shouldParseLeftovers = ""
         , _shouldPrint          = Just "∪Foo ?"
         }
-  where
-    patternGrammar :: Grammar (PatternFor CommentedPhase)
-    patternGrammar = lispyPattern
 
 -- Test that some source code behaves correctly with parsing and printing
 testcase :: (Show a, Eq a) => TestCase a -> Spec
@@ -215,42 +178,20 @@ testcase (TestCase name inputs grammar shouldParse shouldParseLeftovers shouldPr
       -> testParse p parser ("", shouldParse)
 
 testParse :: (Show a, Eq a) => Text -> Parser a -> (Text,Maybe a) -> Spec
-testParse input parser (shouldParseLeftovers, shouldParse) =
-    let parseResult = runParser parser input
-     in case parseResult of
-          ParseSuccess a cur
-            -> do it "has correct leftovers" $ remainder cur `shouldBe` shouldParseLeftovers
-                  it "has correct result" $ Just a `shouldBe` shouldParse
-          ParseFailure failures cur
-            -> do it "has correct leftovers" $ remainder cur `shouldBe` shouldParseLeftovers
-                  it "has correct result" $ case shouldParse of
-                     Nothing
-                       -> pure () -- TODO: We might want to check the specific failure
+testParse input parser (shouldParseLeftovers, shouldParse) = case runParser parser input of
+  Passing st a
+    -> do it "has correct leftovers" $ (remainder . cursor $ st) `shouldBe` shouldParseLeftovers
+          it "has correct result" $ Just a `shouldBe` shouldParse
+  Failing st expected
+    -> do it "has correct leftovers" $ (remainder . cursor $ st) `shouldBe` shouldParseLeftovers
+          it "has correct result" $ case shouldParse of
+             Nothing
+               -> pure () -- TODO: We might want to check the specific failure
 
-                     Just p
-                       -> expectationFailure $ Text.unpack $ render $ mconcat $
-                             [ text "Parse failure at:"
-                             , lineBreak
-
-                             , indent1 $ document cur
-                             , lineBreak
-                             ]
-                             ++
-                             if List.null failures
-                               then mempty
-                               else [ text "The failures backtracked from were:"
-                                    , lineBreak
-                                    , indent1 . mconcat
-                                              . fmap (\(cursor,expected) -> mconcat [ document cursor
-                                                                                    , document expected
-                                                                                    , lineBreak
-                                                                                    , lineBreak
-                                                                                    ]
-                                                    )
-                                              . Map.toList
-                                              . collectFailures
-                                              $ failures
-                                    ]
+             Just _p
+               -> expectationFailure . Text.unpack . render . document . failureSummary st $ expected
+  _
+    -> it "Has a passing or failing result" $ expectationFailure . Text.unpack . render . text $ "Parse didnt pass or fail and is either pending or halted waiting for more input."
 
 testPrint :: Maybe a -> Printer a -> Maybe Text -> Spec
 testPrint input printer shouldPrint = case input of

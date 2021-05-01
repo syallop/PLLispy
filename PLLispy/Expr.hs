@@ -72,17 +72,13 @@ import PLLispy.Kind
 import PLLispy.Level
 import PLLispy.Name
 import PLLispy.Pattern
-import PLLispy.Pattern.Dep
 import PLLispy.Type
-import PLLispy.Type.Dep
 
 -- Core PL
 import PL.Case
 import PL.Commented
 import PL.Expr hiding (appise,lamise)
 import PL.FixPhase
-import PL.Kind
-import PL.Name
 import PL.Pattern
 import PL.TyVar
 import PL.Type
@@ -96,12 +92,7 @@ import Reversible
 import Reversible.Iso
 
 -- Other
-import Control.Applicative
-import Data.List.NonEmpty (NonEmpty (..),uncons)
 import Data.Text
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Set as Set
-
 
 defaultGrammarDependencies
   :: ( Constraints phase
@@ -174,7 +165,7 @@ lamExpr
      , Constraints phase
      )
   => Grammar (ExprFor phase)
-lamExpr =
+lamExpr = label (enhancingLabel "Lambda") $
   lambda */
   (lamIso \$/ lamExtension
           \*/ (spaceAllowed */ abstraction)
@@ -188,7 +179,7 @@ bigLamExpr
      , Constraints phase
      )
   => Grammar (ExprFor phase)
-bigLamExpr =
+bigLamExpr = label (enhancingLabel "Big lambda") $
   bigLambda */
   (bigLamIso \$/ bigLamExtension
              \*/ kind
@@ -202,7 +193,7 @@ appExpr
      , Constraints phase
      )
   => Grammar (ExprFor phase)
-appExpr =
+appExpr = label (enhancingLabel "Application") $
   at */
   (appIso \$/ appExtension
           \*/ (spaceAllowed  */ sub exprI)
@@ -216,7 +207,7 @@ bigAppExpr
      , Constraints phase
      )
   => Grammar (ExprFor phase)
-bigAppExpr =
+bigAppExpr = label (enhancingLabel "Big application") $
   bigAt */
   (bigAppIso \$/ bigAppExtension
              \*/ (spaceAllowed  */ sub exprI)
@@ -231,7 +222,9 @@ bindingExpr
      , Constraints phase
      )
   => Grammar (ExprFor phase)
-bindingExpr = bindingIso \$/ bindingExtension \*/ binding
+bindingExpr = label (enhancingLabel "Binding") $
+  bindingIso \$/ bindingExtension
+             \*/ binding
 
 -- | The content binding constructor is a name which references an expression by
 -- it's content.
@@ -242,7 +235,9 @@ contentBindingExpr
      , Constraints phase
      )
   => Grammar (ExprFor phase)
-contentBindingExpr = contentBindingIso \$/ contentBindingExtension \*/ contentBinding
+contentBindingExpr = label (enhancingLabel "Content binding") $
+  contentBindingIso \$/ contentBindingExtension
+                    \*/ contentBinding
 
 -- | The Sum constructor takes the form:
 --
@@ -252,12 +247,16 @@ sumExpr
      , Constraints phase
      )
   => Grammar (ExprFor phase)
-sumExpr =
+sumExpr = label (enhancingLabel "Sum") $
   plus */
   (sumIso \$/ sumExtension
-          \*/ token natural
+          \*/ sumIndex
           \*/ (spaceAllowed */ sub exprI)
           \*/ (spaceRequired */ (sepBy1 spacePreferred $ sub typI)))
+
+sumIndex :: Grammar Int
+sumIndex = label (enhancingLabel "Type index") $
+  token natural
 
 -- | The Product constructor takes the form:
 --
@@ -267,7 +266,7 @@ productExpr
      , Constraints phase
      )
   => Grammar (ExprFor phase)
-productExpr =
+productExpr = label (enhancingLabel "Product")
   star */
   (productIso \$/ productExtension \*/ (spaceAllowed */ sepBy spacePreferred (sub exprI)))
 
@@ -279,7 +278,7 @@ unionExpr
      , Constraints phase
      )
   => Grammar (ExprFor phase)
-unionExpr =
+unionExpr = label (enhancingLabel "Union") $
   union */
   (unionIso \$/ unionExtension
             \*/ (spaceAllowed   */ sub typI)
@@ -300,7 +299,7 @@ caseAnalysisExpr
      , Constraints phase
      )
   => Grammar (ExprFor phase)
-caseAnalysisExpr =
+caseAnalysisExpr = label (enhancingLabel "Case") $
   textIs "CASE" */
   (caseIso \$/ caseAnalysisExtension \*/ (spaceRequired */ caseBody (sub exprI)))
   where
@@ -368,11 +367,11 @@ expr
   -> PatternGrammarDependencies phase
   -> Level
   -> Grammar (ExprFor phase)
-expr grammarDependencies typeGrammarDependencies patternGrammarDependencies level =
+expr grammarDependencies typeGrammarDependencies patternGrammarDependencies exprLevel =
   let ?grammarDependencies        = grammarDependencies
       ?typeGrammarDependencies    = typeGrammarDependencies
       ?patternGrammarDependencies = patternGrammarDependencies
-   in exprI level
+   in exprI exprLevel
 
 exprI
   :: forall phase

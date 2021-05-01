@@ -16,11 +16,6 @@ module PLLispy.Test.Sources.Expr
   )
   where
 
-import PL
-import PL.Expr
-import PL.Var
-import PL.TyVar
-import PL.Type
 import PL.Test.Expr
 import PL.Test.Expr.BigLam
 import PL.Test.Expr.Boolean
@@ -34,9 +29,6 @@ import PL.Test.Expr.Product
 import PL.Test.Expr.Sum
 import PL.Test.Expr.Union
 import PL.Test.Expr.SelfTypes
-
-import Data.Text
-import qualified Data.Text as Text
 
 sources :: TestExprSources
 sources = TestExprSources
@@ -233,6 +225,7 @@ sources = TestExprSources
       }
   }
 
+{-
 falseTermText, trueTermText, falsePatText, truePatText :: Text
 falseTermText = "+0 (*) (*) (*)"
 trueTermText  = "+1 (*) (*) (*)"
@@ -244,4 +237,4 @@ zTermText  = "+0 (*) (*) Nat"
 sTermText  = "λNat (+1 0 (*) Nat)"
 zPatText   = "+0 (*)"
 sPatText p = "+1 "<>p
-
+-}

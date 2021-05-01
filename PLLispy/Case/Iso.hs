@@ -7,19 +7,10 @@ module PLLispy.Case.Iso
   )
   where
 
-import PLGrammar
 import Reversible.Iso
 
 import PL.Case
-import PL.Kind
-import PL.TyVar
-import PL.Name
-import PL.Var
 
-import qualified Data.Set as Set
-import qualified Data.Text as Text
-
-import Data.Char
 import Data.List.NonEmpty
 
 {- Iso's that map between constructors and their contained values

@@ -56,6 +56,12 @@ library
   -- hs-source-dirs:      
   default-language:    Haskell2010
 
+  -- Disable simplifiable class constrains because:
+  -- - It seems to be triggered by the recursive Fix instances in PL which we
+  --   don't control
+  -- - It isn't actually a problem in our case?
+  ghc-options: -Wall -Wno-simplifiable-class-constraints
+
 test-suite hspec
   type:              exitcode-stdio-1.0
   main-is:           Spec.hs
@@ -88,3 +94,8 @@ test-suite hspec
                    , GeneralizedNewtypeDeriving
                    , LambdaCase
 
+  -- Disable simplifiable class constrains because:
+  -- - It seems to be triggered by the recursive Fix instances in PL which we
+  --   don't control
+  -- - It isn't actually a problem in our case?
+  ghc-options: -Wall -Wno-simplifiable-class-constraints

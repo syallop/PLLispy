@@ -9,16 +9,15 @@ A Grammar for PL.Kind with a lisp-like syntax.
 -}
 module PLLispy.Kind where
 
-import Control.Applicative
-
 import PL.Kind
 
 import PLLispy.Kind.Iso
 import PLLispy.Level
 
+import PLLabel
+
 import PLGrammar
 import Reversible
-import Reversible.Iso
 
 kindAbs :: Grammar Kind
 kindAbs = kind
@@ -37,8 +36,10 @@ parensKind = alternatives
   ]
 
 simpleKind :: Grammar Kind
-simpleKind = textIs "KIND" */ rpure Kind
+simpleKind = label (enhancingLabel "Kind") $
+    textIs "KIND" */ rpure Kind
 
 arrowKind :: Grammar Kind
-arrowKind = arrow */ spaceAllowed */ (kindArrowIso \$/ parensKind \*/ (spacePreferred */ parensKind))
+arrowKind = label (enhancingLabel "Kind Arrow") $
+  arrow */ spaceAllowed */ (kindArrowIso \$/ parensKind \*/ (spacePreferred */ parensKind))
 

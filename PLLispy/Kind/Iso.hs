@@ -1,19 +1,9 @@
 {-# LANGUAGE MultiWayIf, OverloadedStrings #-}
 module PLLispy.Kind.Iso where
 
-import PLGrammar
 import Reversible.Iso
 
-import PL.Case
 import PL.Kind
-import PL.TyVar
-import PL.Name
-import PL.Var
-
-import qualified Data.Set as Set
-import qualified Data.Text as Text
-
-import Data.Char
 
 {- Iso's that map between constructors and their contained values
  - These can/ should be mechanically created, perhaps with TH/ Generics.

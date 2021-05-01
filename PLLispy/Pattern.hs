@@ -43,21 +43,16 @@ module PLLispy.Pattern
   where
 
 -- Lispy
-import PLLispy.Kind
 import PLLispy.Level
 import PLLispy.Name
 import PLLispy.Pattern.Dep
 import PLLispy.Pattern.Iso
 import PLLispy.Type
-import PLLispy.Type
 
 -- Core PL
-import PL.Case
 import PL.Commented
 import PL.Expr hiding (appise,lamise)
 import PL.FixPhase
-import PL.Kind
-import PL.Name
 import PL.Pattern
 import PL.TyVar
 import PL.Type
@@ -68,14 +63,10 @@ import PLHash.Short
 import PLGrammar
 import Reversible
 import Reversible.Iso
+import PLLabel
 
 -- Other
-import Control.Applicative
-import Data.List.NonEmpty (NonEmpty (..),uncons)
 import Data.Text (Text)
-import qualified Data.List.NonEmpty
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Set as Set
 
 
 defaultPatternGrammarDependencies
@@ -127,7 +118,7 @@ sumPattern
      , PatternConstraints phase
      )
   => Grammar (PatternFor phase)
-sumPattern =
+sumPattern = label (enhancingLabel "Sum Pattern") $
   plus */
   (sumPatternIso \$/ sumPatternExtension
                  \*/ (spaceAllowed */ natural)
@@ -141,7 +132,7 @@ productPattern
      , PatternConstraints phase
      )
   => Grammar (PatternFor phase)
-productPattern =
+productPattern = label (enhancingLabel "Product Pattern") $
   star */
   (productPatternIso \$/ productPatternExtension
                      \*/ (spaceAllowed */ sepBy spacePreferred (sub patternI)))
@@ -154,7 +145,7 @@ unionPattern
      , PatternConstraints phase
      )
   => Grammar (PatternFor phase)
-unionPattern =
+unionPattern = label (enhancingLabel "Union Pattern") $
   union */
   (unionPatternIso \$/ unionPatternExtension
                    \*/ (spaceAllowed   */ sub typI)
@@ -169,7 +160,7 @@ bindingPattern
      , PatternConstraints phase
      )
   => Grammar (PatternFor phase)
-bindingPattern =
+bindingPattern = label (enhancingLabel "Binding Pattern") $
   bindingPatternIso \$/ bindingPatternExtension
                     \*/ patternBinding
 
@@ -181,7 +172,7 @@ bindPattern
      , PatternConstraints phase
      )
   => Grammar (PatternFor phase)
-bindPattern =
+bindPattern = label (enhancingLabel "Bind Pattern") $
   question */
   (bindIso \$/ bindExtension)
 
@@ -200,10 +191,10 @@ pattern
   -> TypeGrammarDependencies phase
   -> Level
   -> Grammar (PatternFor phase)
-pattern patternGrammarDependencies typeGrammarDependencies level =
+pattern patternGrammarDependencies typeGrammarDependencies patternLevel =
   let ?patternGrammarDependencies = patternGrammarDependencies
       ?typeGrammarDependencies    = typeGrammarDependencies
-   in patternI level
+   in patternI patternLevel
 
 patternI
   :: forall phase

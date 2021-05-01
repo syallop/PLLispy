@@ -15,19 +15,17 @@ Exports combinators for working with Grammars that are interpreted differently
 depending on whether they are at a top or sub level.
 
 -}
-module PLLispy.Level where
+module PLLispy.Level
+  ( Level (Top, Sub)
+  , level
+  , top
+  , sub
 
-import Control.Applicative
-import Data.List.NonEmpty (NonEmpty (..),uncons)
-import qualified Data.List.NonEmpty as NE
-import qualified Data.Set as Set
-import Data.Text
+  , parensPreferred
+  )
+  where
 
 import PLGrammar
-import Reversible
-import Reversible.Iso
-
-import PLLabel
 
 -- A Grammar is either at the Top level or some unknown Sub level.
 data Level

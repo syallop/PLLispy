@@ -16,22 +16,13 @@ module PLLispy.Test.Sources.Pattern
   )
   where
 
-import PL
-import PL.Expr
-import PL.Var
-import PL.TyVar
-import PL.Type
 import PL.Test.Pattern
-import PL.Test.PatternTestCase
 import PL.Test.Pattern.Bind
 import PL.Test.Pattern.Sum
 import PL.Test.Pattern.Product
 import PL.Test.Pattern.Union
 import PL.Test.Pattern.Binding
 import PL.Test.Pattern.SelfType
-
-import Data.Text
-import qualified Data.Text as Text
 
 sources :: TestPatternSources
 sources = TestPatternSources

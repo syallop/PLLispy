@@ -36,7 +36,6 @@ import Reversible.Iso
 
 -- Other
 import Data.Text (Text)
-import qualified Data.Text as Text
 
 -- | A Content name is a full, unambiguous hash represented in base58.
 -- E.G.

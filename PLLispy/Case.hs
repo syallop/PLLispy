@@ -19,11 +19,7 @@ module PLLispy.Case
   )
   where
 
-import Control.Applicative
-import Data.List.NonEmpty (NonEmpty (..),uncons)
 import qualified Data.List.NonEmpty as NE
-import qualified Data.Set as Set
-import qualified Data.List.NonEmpty
 
 import PLGrammar
 import Reversible
@@ -33,18 +29,12 @@ import PLLispy.Pattern
 import PLLispy.Case.Iso
 import PLLispy.Expr.Dep
 import PLLispy.Pattern.Dep
-import PLLispy.Kind
-import PLLispy.Type
 import PLLispy.Level
+import PLLabel
 
 import PL.Case
-import PL.Commented
 import PL.Expr hiding (appise,lamise)
-import PL.Kind
 import PL.Pattern
-import PL.Type
-import PL.Var
-import PL.TyVar
 
 -- A Case body is made up of:
 -- - A Scrutinee expression
@@ -60,17 +50,17 @@ caseBody
      )
   => Grammar (ExprFor phase)
   -> Grammar (Case (ExprFor phase) (PatternFor phase))
-caseBody expr =
+caseBody expr = label (enhancingLabel "Case Body") $
   caseAnalysisIso \$/ expr
                   \*/ alternatives [ try defaultOnly
                                    , branchesAndOptionalDefault
                                    ]
   where
     defaultOnly :: Grammar (CaseBranches (ExprFor phase) (PatternFor phase))
-    defaultOnly = defaultOnlyIso \$/ (spacePreferred */ expr)
+    defaultOnly = label (enhancingLabel "Default Only") $ defaultOnlyIso \$/ (spacePreferred */ expr)
 
     branchesAndOptionalDefault :: Grammar (CaseBranches (ExprFor phase) (PatternFor phase))
-    branchesAndOptionalDefault =
+    branchesAndOptionalDefault = label (enhancingLabel "Branches with optional Default") $
       branchesAndOptionalDefaultIso \$/ rmany1 (try (spacePreferred */ betweenParens (caseBranch expr)))
                                     \*/ alternatives [ try (justIso \$/ (spacePreferred */ expr))
                                                      , rpure Nothing
@@ -80,15 +70,6 @@ caseBody expr =
     caseAnalysisIso = Iso
       { _forwards  = \(scrutinee, branches) -> Just (Case scrutinee branches)
       , _backwards = \(Case scrutinee branches) -> Just (scrutinee, branches)
-      }
-
-    defaultOnlyIso :: Iso (ExprFor phase) (CaseBranches (ExprFor phase) (PatternFor phase))
-    defaultOnlyIso = Iso
-      { _forwards  = Just . DefaultOnly
-      , _backwards = \c -> case c of
-          DefaultOnly e
-            -> Just e
-          _ -> Nothing
       }
 
     branchesAndOptionalDefaultIso :: Iso ([CaseBranch (ExprFor phase) (PatternFor phase)], Maybe (ExprFor phase)) (CaseBranches (ExprFor phase) (PatternFor phase))
@@ -112,7 +93,7 @@ caseBody expr =
     caseBranch
       :: Grammar (ExprFor phase)
       -> Grammar (CaseBranch (ExprFor phase) (PatternFor phase))
-    caseBranch exprI =
+    caseBranch exprI = label (enhancingLabel "Case Branch") $
       (textIs "|") */
       (caseBranchIso \$/ (spaceAllowed   */ (sub patternI))
                      \*/ (spacePreferred */ exprI))

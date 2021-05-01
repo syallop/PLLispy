@@ -8,44 +8,31 @@
 module PLLispy.Test.TypeSpec where
 
 -- Core PL
-import PL
 import PL.Commented
 import PL.Error
-import PL.Expr
 import PL.FixPhase
-import PL.Name
-import PL.Pattern
 import PL.Test.Parsing.Type
 import PL.Test.Source
 import PL.Test.Type
 import PL.Test.TypeTestCase
-import PL.TyVar
 import PL.Type
-import PL.TypeCtx
-import PL.Var
 
 -- PL Lispy
 import PLLispy
-import PLLispy.Expr
-import PLLispy.Level
 import PLLispy.Test.ExprSpec
 import PLLispy.Test.Sources.Type
-import PLLispy.Type
-import PLLispy.Type
 
 -- Other PL
-import PLStore.Hash
 import PLGrammar
 import PLParser
+import PLParser.Diagnostics
+import PLParser.State
 import PLPrinter
-import PLPrinter.Doc
 
 -- Other
 import Data.Maybe
 import Data.Text
-import qualified Data.List as List
 import qualified Data.Map as Map
-import qualified Data.Text as Text
 import qualified Data.Text as Text
 
 import Control.Monad
@@ -69,44 +56,24 @@ testKeyPrograms =
     lispyParser :: Text.Text -> Either Error (TypeFor CommentedPhase, Source)
     lispyParser input = let p = toParser lispyType
                          in case runParser p input of
-                              ParseSuccess a cursor
-                                -> Right (a, remainder cursor)
+                              Passing st a
+                                -> Right (a, remainder . cursor $ st)
 
                               failure
                                 -> Left . EMsg . ppParseResult (fromMaybe mempty . pprint (toPrinter lispyType)) $ failure
 
     ppParseResult
       :: (a -> Doc)
-      -> PLParser.ParseResult a
+      -> PLParser.Parsing a
       -> Doc
     ppParseResult ppA p = case p of
-        PLParser.ParseSuccess a leftovers
-          -> text "Parsed: " <> ppA a <> text "with leftovers" <> document leftovers
+        PLParser.Passing st a
+          -> text "Parsed: " <> ppA a <> text "with leftovers" <> (document . remainder . cursor $ st)
 
-        PLParser.ParseFailure failures cur0
-          -> mconcat $
-               [ text "Parse failure at:"
-               , lineBreak
-
-               , indent1 $ document cur0
-               , lineBreak
-               ]
-               ++
-               if List.null failures
-                 then mempty
-                 else [ text "The failures backtracked from were:"
-                      , lineBreak
-                      , indent1 . mconcat
-                                . fmap (\(cursor,expected) -> mconcat [ document cursor
-                                                                      , document expected
-                                                                      , lineBreak
-                                                                      , lineBreak
-                                                                      ]
-                                      )
-                                . Map.toList
-                                . PLParser.collectFailures
-                                $ failures
-                      ]
+        PLParser.Failing st expected
+          -> document . failureSummary st $ expected
+        _
+          -> text "Parse didnt pass or fail and is either pending or halted waiting for more input."
 
 testParsePrint :: Spec
 testParsePrint = describe "Lispy specific parse-print behaves" $ do
@@ -131,42 +98,20 @@ testcase (TestCase name inputs grammar shouldParse shouldParseLeftovers shouldPr
       -> testParse p parser ("", shouldParse)
 
 testParse :: (Show a, Eq a) => Text -> Parser a -> (Text,Maybe a) -> Spec
-testParse input parser (shouldParseLeftovers, shouldParse) =
-    let parseResult = runParser parser input
-     in case parseResult of
-          ParseSuccess a cur
-            -> do it "has correct leftovers" $ remainder cur `shouldBe` shouldParseLeftovers
-                  it "has correct result" $ Just a `shouldBe` shouldParse
-          ParseFailure failures cur
-            -> do it "has correct leftovers" $ remainder cur `shouldBe` shouldParseLeftovers
-                  it "has correct result" $ case shouldParse of
-                     Nothing
-                       -> pure () -- TODO: We might want to check the specific failure
+testParse input parser (shouldParseLeftovers, shouldParse) = case runParser parser input of
+  Passing st a
+    -> do it "has correct leftovers" $ (remainder . cursor $ st) `shouldBe` shouldParseLeftovers
+          it "has correct result" $ Just a `shouldBe` shouldParse
+  Failing st expected
+    -> do it "has correct leftovers" $ (remainder . cursor $ st) `shouldBe` shouldParseLeftovers
+          it "has correct result" $ case shouldParse of
+             Nothing
+               -> pure () -- TODO: We might want to check the specific failure
 
-                     Just p
-                       -> expectationFailure $ Text.unpack $ render $ mconcat $
-                             [ text "Parse failure at:"
-                             , lineBreak
-
-                             , indent1 $ document cur
-                             , lineBreak
-                             ]
-                             ++
-                             if List.null failures
-                               then mempty
-                               else [ text "The failures backtracked from were:"
-                                    , lineBreak
-                                    , indent1 . mconcat
-                                              . fmap (\(cursor,expected) -> mconcat [ document cursor
-                                                                                    , document expected
-                                                                                    , lineBreak
-                                                                                    , lineBreak
-                                                                                    ]
-                                                    )
-                                              . Map.toList
-                                              . collectFailures
-                                              $ failures
-                                    ]
+             Just _p
+               -> expectationFailure . Text.unpack . render . document . failureSummary st $ expected
+  _
+    -> it "Has a passing or failing result" $ expectationFailure . Text.unpack . render . text $ "Parse didnt pass or fail and is either pending or halted waiting for more input."
 
 testPrint :: Maybe a -> Printer a -> Maybe Text -> Spec
 testPrint input printer shouldPrint = case input of
