@@ -6,6 +6,7 @@
   , MultiWayIf
   , GADTs
   , ConstraintKinds
+  , TypeOperators
   #-}
 {-|
 Module      : PLLispy.Type

@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiWayIf, OverloadedStrings #-}
+{-# LANGUAGE MultiWayIf, OverloadedStrings, LambdaCase #-}
 module PLLispy.Kind.Iso where
 
 import Reversible.Iso
@@ -11,17 +11,23 @@ import PL.Kind
 
 kindIso :: Iso () Kind
 kindIso = Iso
-  {_forwards = \() -> Just Kind
-  ,_backwards = \Kind -> Just ()
+  { _forwards  = \() -> Just Kind
+
+  , _backwards = \case
+      Kind
+        -> Just ()
+
+      _
+        -> Nothing
   }
 
 kindArrowIso :: Iso (Kind,Kind) Kind
 kindArrowIso = Iso
-  {_forwards = \(fromKy, toKy) -> Just $ KindArrow fromKy toKy
-  ,_backwards = \kind -> case kind of
-                          KindArrow fromKy toKy
-                            -> Just (fromKy, toKy)
+  { _forwards = \(fromKy, toKy) -> Just $ KindArrow fromKy toKy
+  , _backwards = \kind -> case kind of
+                           KindArrow fromKy toKy
+                             -> Just (fromKy, toKy)
 
-                          _ -> Nothing
+                           _ -> Nothing
   }
 

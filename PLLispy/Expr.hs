@@ -6,6 +6,7 @@
   , ScopedTypeVariables
   , FlexibleContexts
   , GADTs
+  , TypeOperators
   #-}
 {-|
 Module      : PLLispy.Expr

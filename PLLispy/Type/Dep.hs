@@ -5,6 +5,7 @@
   , RankNTypes
   , ScopedTypeVariables
   , FlexibleContexts
+  , MonoLocalBinds
   #-}
 {-|
 Module      : PLLispy.Type.Dep

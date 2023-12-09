@@ -1,37 +1,39 @@
-resolver: lts-17.8
+resolver: lts-21.24
 flags:
 extra-package-dbs: []
 packages:
 - .
 extra-deps:
 - git: https://github.com/syallop/PLCore
-  commit: 359f517d0d467b78b5376090810419b8a0597bed
+  commit: f13a4dfb149a0fa1c3734d4fd6d7feddaa3d9e2a
 
 - git: https://github.com/syallop/PLParser
-  commit: a392db9fdc97022cb3adb33c708fb065c1aedff9
+  commit: 120db653534f7b28c6cfa5afd18a1bf0d4ff4ca3
 
 - git: https://github.com/syallop/PLGrammar
-  commit: ece33dda877ed6b2199ebc6528fdc825302b3978
+  commit: d761d31bd2e332bae639ba2c2c73f873524c0e3e
 
 - git: https://github.com/syallop/Reversible
-  commit: 84188a89af962716dc0534d552da715305cb0cf5
+  commit: 9ccb55ba11d7b82a53ed470040b50cac0ea12664
 
 - git: https://github.com/syallop/PLLabel
-  commit: 678354d723effe569aae83623d25191c25e219a0
+  commit: d0f17cf627c28e005d02e13a69a74ccd615cc9d1
 
 - git: https://github.com/syallop/PLPrinter
-  commit: 29c1fc4fe5f33086bed4855e016aa56aa80264af
+  commit: 74fd1a684542f9f876753e2d7b3b0d5609bf385e
 
 - git: https://github.com/syallop/PLHash
-  commit: 8b2c8d586f55813851740dc64e24677db42eef77
+  commit: 07ba8651a6839bd44e2e38d4d1c837d3fc22af4b
 
 - git: https://github.com/syallop/PLStore
-  commit: 3406f7f2e6eb15c83eebb689a08b871f21c2c0d3
+  commit: 94a978c839e6528767ca73365ef43dd7d331d8b3
   subdirs:
     - Store
     - Hash
+
 - git: https://github.com/syallop/DSL-Compose.git
-  commit: 8e49641f049c586e21c36c6982f51670082e1e3f
+  commit: 74d87b23e7ac8063f25194b607049bd4c7c54f47
+
 - pretty-tree-0.1.0.0@sha256:49b0e17008f9d30328db2bcc2958f3a7b78d154d2335c2dbaa2073e237b524ae,668
 - base58-bytestring-0.1.0@sha256:a1da72ee89d5450bac1c792d9fcbe95ed7154ab7246f2172b57bd4fd9b5eab79,1913
 - hashing-0.1.0.1@sha256:98861f16791946cdf28e3c7a6ee9ac8b72d546d6e33c569c7087ef18253294e7,2816

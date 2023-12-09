@@ -5,6 +5,7 @@
   , FlexibleContexts
   , LambdaCase
   , ScopedTypeVariables
+  , TypeOperators
   #-}
 {-|
 Module      : PLLispy
